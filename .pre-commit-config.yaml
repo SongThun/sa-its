@@ -1,0 +1,21 @@
+# Root pre-commit configuration for monorepo
+# Backend uses pre-commit, Frontend uses lint-staged (only runs on staged files)
+
+repos:
+  - repo: local
+    hooks:
+      # Backend hooks - runs Python/Django checks on staged files
+      - id: backend-hooks
+        name: Backend pre-commit
+        entry: bash -c 'cd backend && pre-commit run; cd -'
+        language: system
+        files: ^backend/
+        pass_filenames: false
+
+      # Frontend hooks - runs lint-staged (ESLint + Prettier) on staged files
+      - id: frontend-hooks
+        name: Frontend lint-staged
+        entry: bash -c 'cd frontend && npx lint-staged; cd -'
+        language: system
+        files: ^frontend/
+        pass_filenames: false
