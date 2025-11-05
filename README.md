@@ -57,6 +57,16 @@ sa-its/
    - API Docs (ReDoc): http://localhost:8000/api/redoc/
    - OpenAPI Schema: http://localhost:8000/api/schema/
 
+6. **Run test:**
+   ```bash
+   # Run all testcase
+   ./run pytest --create-db
+   
+   # Run specific test (test file, test case)
+   ./run pytest <test_case>
+   ```
+   
+
 ### Frontend Setup
 
 1. **Navigate to frontend directory:**
