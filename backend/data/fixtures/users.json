@@ -1,0 +1,45 @@
+{
+  "table": "users",
+  "data": [
+    {
+      "username": "admin",
+      "email": "admin@example.com",
+      "password": "Admin123!",
+      "fullname": "System Administrator",
+      "is_staff": true,
+      "is_superuser": true
+    },
+    {
+      "username": "instructor1",
+      "email": "instructor1@example.com",
+      "password": "Instructor123!",
+      "fullname": "John Smith",
+      "is_staff": true,
+      "is_superuser": false
+    },
+    {
+      "username": "student1",
+      "email": "student1@example.com",
+      "password": "Student123!",
+      "fullname": "Alice Johnson",
+      "is_staff": false,
+      "is_superuser": false
+    },
+    {
+      "username": "student2",
+      "email": "student2@example.com",
+      "password": "Student123!",
+      "fullname": "Bob Williams",
+      "is_staff": false,
+      "is_superuser": false
+    },
+    {
+      "username": "student3",
+      "email": "student3@example.com",
+      "password": "Student123!",
+      "fullname": "Carol Davis",
+      "is_staff": false,
+      "is_superuser": false
+    }
+  ]
+}

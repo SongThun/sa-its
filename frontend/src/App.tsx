@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Box } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
@@ -8,15 +9,14 @@ import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
 import Lesson from './pages/Lesson';
-import './App.css';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="app">
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <Navbar />
-          <main className="main-content">
+          <Box component="main" sx={{ flexGrow: 1 }}>
             <Routes>
               <Route path="/" element={<Navigate to="/courses" replace />} />
               <Route path="/login" element={<Login />} />
@@ -27,8 +27,8 @@ function App() {
               <Route path="/course/:courseId" element={<CourseDetail />} />
               <Route path="/course/:courseId/lesson/:lessonId" element={<Lesson />} />
             </Routes>
-          </main>
-        </div>
+          </Box>
+        </Box>
       </Router>
     </AuthProvider>
   );

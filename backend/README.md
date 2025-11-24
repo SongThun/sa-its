@@ -229,6 +229,113 @@ class YourModelTests(APITestCase):
 ```
 
 
+## Database Seeding
+
+The project includes a database seeding system for populating the database with example/test data.
+
+### Directory Structure
+
+```
+backend/data/
+├── __init__.py
+├── seed.py              # Main seeding script
+└── fixtures/            # JSON fixture files
+    └── users.json       # Example user data
+```
+
+### JSON Fixture Format
+
+Fixture files follow this format:
+
+```json
+{
+  "table": "users",
+  "data": [
+    {
+      "username": "admin",
+      "email": "admin@example.com",
+      "password": "Admin123!",
+      "fullname": "System Administrator",
+      "is_staff": true,
+      "is_superuser": true
+    },
+    {
+      "username": "student1",
+      "email": "student1@example.com",
+      "password": "Student123!",
+      "fullname": "Alice Johnson"
+    }
+  ]
+}
+```
+
+### Usage
+
+**Via Django management command (recommended):**
+
+```bash
+# Seed all fixtures
+python manage.py seed
+
+# Seed a specific fixture file
+python manage.py seed --file users.json
+
+# Clear a table before seeding
+python manage.py seed --clear users
+
+# Specify custom fixtures directory
+python manage.py seed --dir /path/to/fixtures
+```
+
+**Via script directly:**
+
+```bash
+# Seed all fixtures
+python data/seed.py
+
+# Seed specific file
+python data/seed.py --file data/fixtures/users.json
+
+# Clear table before seeding
+python data/seed.py --clear users
+```
+
+**Via Docker:**
+
+```bash
+docker-compose run --rm django python manage.py seed
+```
+
+### Adding New Fixtures
+
+1. Create a new JSON file in `data/fixtures/` (e.g., `courses.json`)
+2. Follow the format with `table` and `data` fields
+3. The `table` field should match the database table name (check model's `Meta.db_table`)
+
+### Custom Table Handlers
+
+For tables requiring special handling (like password hashing for users), add a handler in `data/seed.py`:
+
+```python
+@register_handler("your_table_name")
+def handle_your_table(data_list):
+    # Custom logic here
+    created_count = 0
+    skipped_count = 0
+    # ... process data_list ...
+    return created_count, skipped_count
+```
+
+### Features
+
+- **Automatic password hashing** for user records
+- **Skip existing records** (by email for users, by primary key for others)
+- **Transaction-safe** - all-or-nothing seeding
+- **Extensible** - add custom handlers for special tables
+- **Generic handler** - works automatically for any Django model
+
+---
+
 ## Common Django Management Commands
 
 ```bash
@@ -255,6 +362,9 @@ python manage.py shell
 
 # Collect static files
 python manage.py collectstatic
+
+# Seed the database with example data
+python manage.py seed
 ```
 
 ## API Documentation

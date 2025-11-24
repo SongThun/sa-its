@@ -1,12 +1,18 @@
+"""
+Serializers for authentication module.
+Responsibility: Data validation and transformation only.
+Business logic is handled by the service layer.
+"""
+
 from rest_framework import serializers
-from django.contrib.auth import authenticate
-from django.contrib.auth.password_validation import validate_password
-from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer for User model (public view)"""
+    """
+    Serializer for User model (public view).
+    Used for returning user data in responses.
+    """
 
     class Meta:
         model = User
@@ -14,46 +20,24 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
-    """Serializer for user registration"""
+class UserRegistrationSerializer(serializers.Serializer):
+    """
+    Serializer for user registration input validation.
+    Only validates input format - business logic in RegistrationService.
+    """
 
-    password = serializers.CharField(
-        write_only=True, required=True, validators=[validate_password]
-    )
+    username = serializers.CharField(max_length=150, required=True)
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
     password_confirm = serializers.CharField(write_only=True, required=True)
-
-    class Meta:
-        model = User
-        fields = ["username", "email", "password", "password_confirm", "fullname"]
-
-    def validate_email(self, value):
-        normalized_email = value.strip().lower()
-
-        if User.objects.filter(email=normalized_email).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-
-        return normalized_email
-
-    def validate(self, attrs):
-        if attrs["password"] != attrs["password_confirm"]:
-            raise serializers.ValidationError(
-                {"password": "Password fields didn't match."}
-            )
-        return attrs
-
-    def create(self, validated_data):
-        validated_data.pop("password_confirm")
-        user = User.objects.create_user(
-            username=validated_data["username"],
-            email=validated_data["email"],
-            password=validated_data["password"],
-            fullname=validated_data.get("fullname", ""),
-        )
-        return user
+    fullname = serializers.CharField(max_length=255, required=False, default="")
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for user profile (includes private info)"""
+    """
+    Serializer for user profile (includes private info).
+    Used for profile retrieval and updates.
+    """
 
     class Meta:
         model = User
@@ -71,59 +55,28 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class ResetPasswordSerializer(serializers.Serializer):
-    """Serializer for password change"""
+    """
+    Serializer for password change input validation.
+    Only validates input format - business logic in PasswordService.
+    """
 
     old_password = serializers.CharField(required=True, write_only=True)
-    new_password = serializers.CharField(
-        required=True, write_only=True, validators=[validate_password]
-    )
+    new_password = serializers.CharField(required=True, write_only=True)
     new_password_confirm = serializers.CharField(required=True, write_only=True)
-
-    def validate(self, attrs):
-        if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError(
-                {"new_password": "Password fields didn't match."}
-            )
-        return attrs
 
 
 class UserLoginSerializer(serializers.Serializer):
-    """Serializer for user login"""
+    """
+    Serializer for login input validation.
+    Only validates input format - business logic in AuthenticationService.
+    """
 
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
 
-    def validate_email(self, value):
-        return value.strip().lower()
 
-    def validate(self, attrs):
-        email = attrs.get("email")
-        password = attrs.get("password")
+class LoginResponseSerializer(serializers.Serializer):
+    """Serializer for login response data."""
 
-        if email and password:
-            user = authenticate(username=email, password=password)
-
-            if not user:
-                raise serializers.ValidationError(
-                    {"detail": "Invalid email or password."}
-                )
-
-            if not user.is_active:
-                raise serializers.ValidationError(
-                    {"detail": "User account is disabled."}
-                )
-
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
-
-            return {
-                "user": UserSerializer(user).data,
-                "tokens": {
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token),
-                },
-            }
-
-        raise serializers.ValidationError(
-            {"detail": "Must include 'email' and 'password'."}
-        )
+    user = UserSerializer()
+    tokens = serializers.DictField()

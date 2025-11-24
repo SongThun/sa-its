@@ -1,9 +1,49 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  CardMedia,
+  Grid,
+  Chip,
+  LinearProgress,
+  CircularProgress,
+  Stack,
+  Paper,
+  Avatar,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  Divider,
+} from '@mui/material';
+import {
+  Star as StarIcon,
+  People as PeopleIcon,
+  AccessTime as TimeIcon,
+  BarChart as LevelIcon,
+  CheckCircle as CheckIcon,
+  Lock as LockIcon,
+  PlayCircle as PlayIcon,
+  Article as ArticleIcon,
+  Quiz as QuizIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  ArrowForward as ArrowIcon,
+  Videocam as VideoIcon,
+  MenuBook as ModuleIcon,
+  PhoneAndroid as MobileIcon,
+  EmojiEvents as CertificateIcon,
+} from '@mui/icons-material';
+import { useAuth } from '../hooks/useAuth';
 import { courseApi, enrollmentApi } from '../services/api';
 import type { Course, EnrollmentProgress } from '../types';
-import './CourseDetail.css';
 
 export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -19,12 +59,14 @@ export default function CourseDetail() {
 
   useEffect(() => {
     loadCourse();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
 
   useEffect(() => {
     if (isEnrolled && user && courseId) {
       loadProgress();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEnrolled, user, courseId]);
 
   const loadCourse = async () => {
@@ -33,7 +75,6 @@ export default function CourseDetail() {
     try {
       const courseData = await courseApi.getCourseById(courseId);
       setCourse(courseData);
-      // Expand first module by default
       if (courseData?.modules.length) {
         setExpandedModules(new Set([courseData.modules[0].id]));
       }
@@ -59,7 +100,6 @@ export default function CourseDetail() {
       navigate('/login');
       return;
     }
-
     if (!user || !courseId) return;
     setIsEnrolling(true);
     try {
@@ -104,207 +144,275 @@ export default function CourseDetail() {
     return course?.modules.reduce((acc, module) => acc + module.lessons.length, 0) || 0;
   };
 
+  const getLessonIcon = (type: string) => {
+    switch (type) {
+      case 'video': return <VideoIcon sx={{ fontSize: 20 }} />;
+      case 'text': return <ArticleIcon sx={{ fontSize: 20 }} />;
+      case 'quiz': return <QuizIcon sx={{ fontSize: 20 }} />;
+      default: return <PlayIcon sx={{ fontSize: 20 }} />;
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="course-detail-loading">
-        <div className="spinner"></div>
-        <p>Loading course...</p>
-      </div>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 2 }}>
+        <CircularProgress />
+        <Typography color="text.secondary">Loading course...</Typography>
+      </Box>
     );
   }
 
   if (!course) {
     return (
-      <div className="course-not-found">
-        <h2>Course not found</h2>
-        <Link to="/courses">Browse all courses</Link>
-      </div>
+      <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h4" gutterBottom>Course not found</Typography>
+        <Button component={RouterLink} to="/courses" variant="contained">
+          Browse all courses
+        </Button>
+      </Container>
     );
   }
 
   return (
-    <div className="course-detail-page">
-      <div className="course-hero">
-        <div className="hero-content">
-          <div className="hero-info">
-            <span className="course-badge">{course.category}</span>
-            <h1>{course.title}</h1>
-            <p className="course-description">{course.description}</p>
-            <div className="course-instructor-info">
-              <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor}`}
-                alt={course.instructor}
-                className="instructor-avatar"
-              />
-              <div>
-                <span className="instructor-label">Instructor</span>
-                <span className="instructor-name">{course.instructor}</span>
-              </div>
-            </div>
-            <div className="course-stats">
-              <div className="stat">
-                <span className="stat-icon">★</span>
-                <span className="stat-value">{course.rating}</span>
-                <span className="stat-label">Rating</span>
-              </div>
-              <div className="stat">
-                <span className="stat-icon">👥</span>
-                <span className="stat-value">{course.studentsCount.toLocaleString()}</span>
-                <span className="stat-label">Students</span>
-              </div>
-              <div className="stat">
-                <span className="stat-icon">⏱️</span>
-                <span className="stat-value">{course.duration}</span>
-                <span className="stat-label">Duration</span>
-              </div>
-              <div className="stat">
-                <span className="stat-icon">📊</span>
-                <span className="stat-value">{course.level}</span>
-                <span className="stat-label">Level</span>
-              </div>
-            </div>
-          </div>
-          <div className="hero-card">
-            <img src={course.thumbnail} alt={course.title} className="hero-thumbnail" />
-            <div className="hero-card-content">
-              {isEnrolled ? (
-                <>
-                  <div className="enrolled-status">
-                    <span className="enrolled-icon">✓</span>
-                    <span>You're enrolled!</span>
-                  </div>
-                  {progress && (
-                    <div className="progress-info">
-                      <div className="progress-bar-large">
-                        <div
-                          className="progress-fill"
-                          style={{ width: `${progress.progress}%` }}
-                        ></div>
-                      </div>
-                      <span className="progress-text">
-                        {progress.progress}% complete ({progress.completedLessons.length}/{getTotalLessons()} lessons)
-                      </span>
-                    </div>
+    <Box sx={{ bgcolor: 'background.default' }}>
+      {/* Hero Section */}
+      <Box
+        sx={{
+          background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+          color: 'white',
+          py: 6,
+        }}
+      >
+        <Container maxWidth="xl">
+          <Grid container spacing={4}>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Chip label={course.category} color="primary" sx={{ mb: 2 }} />
+              <Typography variant="h3" fontWeight={700} gutterBottom>
+                {course.title}
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9, mb: 3 }}>
+                {course.description}
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <Avatar
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor}`}
+                  sx={{ width: 48, height: 48 }}
+                />
+                <Box>
+                  <Typography variant="caption" sx={{ opacity: 0.7 }}>Instructor</Typography>
+                  <Typography variant="body1" fontWeight={500}>{course.instructor}</Typography>
+                </Box>
+              </Box>
+
+              <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <StarIcon sx={{ color: 'warning.main' }} />
+                  <Typography variant="body1" fontWeight={500}>{course.rating}</Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.7 }}>Rating</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PeopleIcon />
+                  <Typography variant="body1" fontWeight={500}>{course.studentsCount.toLocaleString()}</Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.7 }}>Students</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TimeIcon />
+                  <Typography variant="body1" fontWeight={500}>{course.duration}</Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.7 }}>Duration</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <LevelIcon />
+                  <Typography variant="body1" fontWeight={500}>{course.level}</Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.7 }}>Level</Typography>
+                </Box>
+              </Stack>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Card sx={{ overflow: 'visible' }}>
+                <CardMedia
+                  component="img"
+                  height="180"
+                  image={course.thumbnail}
+                  alt={course.title}
+                />
+                <CardContent>
+                  {isEnrolled ? (
+                    <>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, color: 'success.main' }}>
+                        <CheckIcon />
+                        <Typography fontWeight={600}>You're enrolled!</Typography>
+                      </Box>
+                      {progress && (
+                        <Box sx={{ mb: 3 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2">Progress</Typography>
+                            <Typography variant="body2" fontWeight={500}>
+                              {progress.progress}% ({progress.completedLessons.length}/{getTotalLessons()} lessons)
+                            </Typography>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={progress.progress}
+                            sx={{ height: 10, borderRadius: 5 }}
+                          />
+                        </Box>
+                      )}
+                      <Button
+                        component={RouterLink}
+                        to={`/course/${courseId}/lesson/${course.modules[0]?.lessons[0]?.id}`}
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        sx={{ mb: 2 }}
+                      >
+                        {progress && progress.progress > 0 ? 'Continue Learning' : 'Start Course'}
+                      </Button>
+                      <Button
+                        onClick={handleUnenroll}
+                        variant="outlined"
+                        color="error"
+                        fullWidth
+                        disabled={isEnrolling}
+                      >
+                        {isEnrolling ? 'Processing...' : 'Unenroll'}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="h4" fontWeight={700} color="primary">Free</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Full access to all content
+                        </Typography>
+                      </Box>
+                      <Button
+                        onClick={handleEnroll}
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        disabled={isEnrolling}
+                        sx={{ mb: 3 }}
+                      >
+                        {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
+                      </Button>
+                      <Stack spacing={1.5}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <VideoIcon color="action" />
+                          <Typography variant="body2">{getTotalLessons()} lessons</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <ModuleIcon color="action" />
+                          <Typography variant="body2">{course.modules.length} modules</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <MobileIcon color="action" />
+                          <Typography variant="body2">Mobile access</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <CertificateIcon color="action" />
+                          <Typography variant="body2">Certificate of completion</Typography>
+                        </Box>
+                      </Stack>
+                    </>
                   )}
-                  <Link
-                    to={`/course/${courseId}/lesson/${course.modules[0]?.lessons[0]?.id}`}
-                    className="continue-btn"
-                  >
-                    {progress && progress.progress > 0 ? 'Continue Learning' : 'Start Course'}
-                  </Link>
-                  <button onClick={handleUnenroll} className="unenroll-btn" disabled={isEnrolling}>
-                    {isEnrolling ? 'Processing...' : 'Unenroll'}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="price-section">
-                    <span className="price">Free</span>
-                    <span className="price-note">Full access to all content</span>
-                  </div>
-                  <button
-                    onClick={handleEnroll}
-                    className="enroll-btn"
-                    disabled={isEnrolling}
-                  >
-                    {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
-                  </button>
-                  <ul className="course-includes">
-                    <li><span>📹</span> {getTotalLessons()} lessons</li>
-                    <li><span>📚</span> {course.modules.length} modules</li>
-                    <li><span>📱</span> Mobile access</li>
-                    <li><span>🏆</span> Certificate of completion</li>
-                  </ul>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
 
-      <div className="course-content-section">
-        <div className="content-container">
-          <div className="section-header">
-            <h2>Course Content</h2>
-            <p>
-              {course.modules.length} modules • {getTotalLessons()} lessons • {course.duration}
-            </p>
-          </div>
+      {/* Course Content Section */}
+      <Container maxWidth="xl" sx={{ py: 6 }}>
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h5" fontWeight={600} gutterBottom>
+            Course Content
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {course.modules.length} modules • {getTotalLessons()} lessons • {course.duration}
+          </Typography>
+        </Box>
 
-          <div className="modules-list">
+        <Paper variant="outlined">
+          <List disablePadding>
             {course.modules.map((module, moduleIndex) => (
-              <div key={module.id} className="module-item">
-                <button
-                  className={`module-header ${expandedModules.has(module.id) ? 'expanded' : ''}`}
-                  onClick={() => toggleModule(module.id)}
-                >
-                  <div className="module-title">
-                    <span className="module-number">{moduleIndex + 1}</span>
-                    <div>
-                      <h3>{module.title}</h3>
-                      <p>{module.description}</p>
-                    </div>
-                  </div>
-                  <div className="module-meta">
-                    <span className="lesson-count">{module.lessons.length} lessons</span>
-                    <span className={`expand-icon ${expandedModules.has(module.id) ? 'expanded' : ''}`}>
-                      ▼
-                    </span>
-                  </div>
-                </button>
+              <Box key={module.id}>
+                {moduleIndex > 0 && <Divider />}
+                <ListItemButton onClick={() => toggleModule(module.id)} sx={{ py: 2 }}>
+                  <ListItemIcon>
+                    <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: 14 }}>
+                      {moduleIndex + 1}
+                    </Avatar>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={<Typography fontWeight={600}>{module.title}</Typography>}
+                    secondary={module.description}
+                  />
+                  <Chip label={`${module.lessons.length} lessons`} size="small" sx={{ mr: 2 }} />
+                  {expandedModules.has(module.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </ListItemButton>
 
-                {expandedModules.has(module.id) && (
-                  <div className="lessons-list">
+                <Collapse in={expandedModules.has(module.id)} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding sx={{ bgcolor: 'background.default' }}>
                     {module.lessons.map((lesson, lessonIndex) => (
-                      <div key={lesson.id} className="lesson-item">
+                      <ListItem
+                        key={lesson.id}
+                        disablePadding
+                        sx={{ borderTop: '1px solid', borderColor: 'divider' }}
+                      >
                         {isEnrolled ? (
-                          <Link
+                          <ListItemButton
+                            component={RouterLink}
                             to={`/course/${courseId}/lesson/${lesson.id}`}
-                            className="lesson-link"
+                            sx={{ pl: 9 }}
                           >
-                            <span className="lesson-status">
+                            <ListItemIcon sx={{ minWidth: 40 }}>
                               {isLessonCompleted(lesson.id) ? (
-                                <span className="completed-icon">✓</span>
+                                <CheckIcon color="success" />
                               ) : (
-                                <span className="lesson-number">{lessonIndex + 1}</span>
+                                <Typography variant="body2" color="text.secondary">
+                                  {lessonIndex + 1}
+                                </Typography>
                               )}
-                            </span>
-                            <div className="lesson-info">
-                              <span className="lesson-title">{lesson.title}</span>
-                              <span className="lesson-meta">
-                                <span className="lesson-type">
-                                  {lesson.type === 'video' ? '📹' : lesson.type === 'text' ? '📄' : '❓'}
-                                </span>
-                                {lesson.duration}
-                              </span>
-                            </div>
-                            <span className="lesson-arrow">→</span>
-                          </Link>
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={lesson.title}
+                              secondary={
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  {getLessonIcon(lesson.type)}
+                                  <Typography variant="caption">{lesson.duration}</Typography>
+                                </Stack>
+                              }
+                            />
+                            <ArrowIcon sx={{ color: 'text.secondary' }} />
+                          </ListItemButton>
                         ) : (
-                          <div className="lesson-link locked">
-                            <span className="lesson-status">
-                              <span className="locked-icon">🔒</span>
-                            </span>
-                            <div className="lesson-info">
-                              <span className="lesson-title">{lesson.title}</span>
-                              <span className="lesson-meta">
-                                <span className="lesson-type">
-                                  {lesson.type === 'video' ? '📹' : lesson.type === 'text' ? '📄' : '❓'}
-                                </span>
-                                {lesson.duration}
-                              </span>
-                            </div>
-                          </div>
+                          <ListItem sx={{ pl: 9, opacity: 0.6 }}>
+                            <ListItemIcon sx={{ minWidth: 40 }}>
+                              <LockIcon color="disabled" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={lesson.title}
+                              secondary={
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  {getLessonIcon(lesson.type)}
+                                  <Typography variant="caption">{lesson.duration}</Typography>
+                                </Stack>
+                              }
+                            />
+                          </ListItem>
                         )}
-                      </div>
+                      </ListItem>
                     ))}
-                  </div>
-                )}
-              </div>
+                  </List>
+                </Collapse>
+              </Box>
             ))}
-          </div>
-        </div>
-      </div>
-    </div>
+          </List>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

@@ -44,4 +44,6 @@ urlpatterns = [
     path("api/auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     # Authentication app
     path("api/auth/", include("apps.authentication.urls")),
+    # Content Management
+    path("api/content/", include("apps.content.urls")),
 ]

@@ -1,9 +1,30 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Link as RouterLink } from 'react-router-dom';
+import {
+  Box,
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  CardMedia,
+  CardActionArea,
+  Grid,
+  TextField,
+  InputAdornment,
+  Chip,
+  CircularProgress,
+  Stack,
+  Paper,
+  Avatar,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  AccessTime as TimeIcon,
+  Star as StarIcon,
+} from '@mui/icons-material';
+import { useAuth } from '../hooks/useAuth';
 import { courseApi } from '../services/api';
 import type { Course } from '../types';
-import './Courses.css';
 
 export default function Courses() {
   const { user } = useAuth();
@@ -48,140 +69,232 @@ export default function Courses() {
 
   const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'Beginner': return 'success';
+      case 'Intermediate': return 'warning';
+      case 'Advanced': return 'error';
+      default: return 'default';
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="courses-loading">
-        <div className="spinner"></div>
-        <p>Loading courses...</p>
-      </div>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 2 }}>
+        <CircularProgress />
+        <Typography color="text.secondary">Loading courses...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="courses-page">
-      <div className="courses-hero">
-        <div className="hero-content">
-          <h1>Explore Our Courses</h1>
-          <p>Discover thousands of courses to help you grow your skills</p>
-          <div className="hero-search">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="Search for courses, topics, or instructors..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+    <Box sx={{ bgcolor: 'background.default', minHeight: 'calc(100vh - 64px)' }}>
+      {/* Hero Section */}
+      <Box
+        sx={{
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+          color: 'white',
+          py: 8,
+          textAlign: 'center',
+        }}
+      >
+        <Container maxWidth="md">
+          <Typography variant="h3" fontWeight={700} gutterBottom>
+            Explore Our Courses
+          </Typography>
+          <Typography variant="h6" sx={{ opacity: 0.9, mb: 4 }}>
+            Discover thousands of courses to help you grow your skills
+          </Typography>
+          <TextField
+            fullWidth
+            placeholder="Search for courses, topics, or instructors..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              maxWidth: 600,
+              bgcolor: 'white',
+              borderRadius: 2,
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { border: 'none' },
+              },
+            }}
+          />
+        </Container>
+      </Box>
+
+      {/* Filters & Content */}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        {/* Filter Section */}
+        <Paper sx={{ p: 3, mb: 4 }}>
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Category
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {categories.map((category) => (
+                  <Chip
+                    key={category}
+                    label={category}
+                    onClick={() => setSelectedCategory(category)}
+                    color={selectedCategory === category ? 'primary' : 'default'}
+                    variant={selectedCategory === category ? 'filled' : 'outlined'}
+                  />
+                ))}
+              </Stack>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Level
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {levels.map((level) => (
+                  <Chip
+                    key={level}
+                    label={level}
+                    onClick={() => setSelectedLevel(level)}
+                    color={selectedLevel === level ? 'primary' : 'default'}
+                    variant={selectedLevel === level ? 'filled' : 'outlined'}
+                  />
+                ))}
+              </Stack>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {/* Results Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="body1" color="text.secondary">
+            {filteredCourses.length} courses found
+          </Typography>
+          {(searchQuery || selectedCategory !== 'All' || selectedLevel !== 'All') && (
+            <Chip
+              label="Clear filters"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+                setSelectedLevel('All');
+              }}
+              onDelete={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+                setSelectedLevel('All');
+              }}
+              color="primary"
+              variant="outlined"
             />
-          </div>
-        </div>
-      </div>
-
-      <div className="courses-container">
-        <div className="filters-section">
-          <div className="filter-group">
-            <label>Category</label>
-            <div className="filter-buttons">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  className={`filter-btn ${selectedCategory === category ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="filter-group">
-            <label>Level</label>
-            <div className="filter-buttons">
-              {levels.map((level) => (
-                <button
-                  key={level}
-                  className={`filter-btn ${selectedLevel === level ? 'active' : ''}`}
-                  onClick={() => setSelectedLevel(level)}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="courses-results">
-          <div className="results-header">
-            <span className="results-count">{filteredCourses.length} courses found</span>
-            {(searchQuery || selectedCategory !== 'All' || selectedLevel !== 'All') && (
-              <button
-                className="clear-filters"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('All');
-                  setSelectedLevel('All');
-                }}
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-
-          <div className="courses-grid">
-            {filteredCourses.map((course) => (
-              <Link key={course.id} to={`/course/${course.id}`} className="course-card">
-                <div className="card-image">
-                  <img src={course.thumbnail} alt={course.title} />
-                  {isEnrolled(course.id) && (
-                    <span className="enrolled-badge">Enrolled</span>
-                  )}
-                  <span className={`level-badge ${course.level.toLowerCase()}`}>
-                    {course.level}
-                  </span>
-                </div>
-                <div className="card-content">
-                  <span className="card-category">{course.category}</span>
-                  <h3 className="card-title">{course.title}</h3>
-                  <p className="card-description">{course.description.slice(0, 100)}...</p>
-                  <div className="card-instructor">
-                    <img
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor}`}
-                      alt={course.instructor}
-                      className="instructor-avatar"
-                    />
-                    <span>{course.instructor}</span>
-                  </div>
-                  <div className="card-footer">
-                    <div className="card-rating">
-                      <span className="star">★</span>
-                      <span className="rating-value">{course.rating}</span>
-                      <span className="rating-count">({course.studentsCount.toLocaleString()})</span>
-                    </div>
-                    <div className="card-duration">
-                      <span>⏱️</span>
-                      <span>{course.duration}</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {filteredCourses.length === 0 && (
-            <div className="no-courses">
-              <div className="no-courses-icon">📚</div>
-              <h3>No courses found</h3>
-              <p>Try adjusting your search or filters to find what you're looking for.</p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('All');
-                  setSelectedLevel('All');
-                }}
-              >
-                Clear all filters
-              </button>
-            </div>
           )}
-        </div>
-      </div>
-    </div>
+        </Box>
+
+        {/* Course Grid */}
+        <Grid container spacing={3}>
+          {filteredCourses.map((course) => (
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={course.id}>
+              <Card
+                component={RouterLink}
+                to={`/course/${course.id}`}
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  textDecoration: 'none',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 },
+                }}
+              >
+                <CardActionArea sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+                  <Box sx={{ position: 'relative' }}>
+                    <CardMedia
+                      component="img"
+                      height="160"
+                      image={course.thumbnail}
+                      alt={course.title}
+                    />
+                    {isEnrolled(course.id) && (
+                      <Chip
+                        label="Enrolled"
+                        size="small"
+                        color="success"
+                        sx={{ position: 'absolute', top: 8, left: 8 }}
+                      />
+                    )}
+                    <Chip
+                      label={course.level}
+                      size="small"
+                      color={getLevelColor(course.level) as 'success' | 'warning' | 'error' | 'default'}
+                      sx={{ position: 'absolute', top: 8, right: 8 }}
+                    />
+                  </Box>
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Chip label={course.category} size="small" sx={{ mb: 1 }} />
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                      {course.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }} noWrap>
+                      {course.description}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Avatar
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor}`}
+                        sx={{ width: 24, height: 24 }}
+                      />
+                      <Typography variant="body2" color="text.secondary">
+                        {course.instructor}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <StarIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+                        <Typography variant="body2" fontWeight={500}>{course.rating}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          ({course.studentsCount.toLocaleString()})
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {course.duration}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* No Results */}
+        {filteredCourses.length === 0 && (
+          <Paper sx={{ p: 6, textAlign: 'center' }}>
+            <Typography variant="h1" sx={{ fontSize: 64, mb: 2 }}>
+              {"📚"}
+            </Typography>
+            <Typography variant="h6" gutterBottom>
+              No courses found
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Try adjusting your search or filters to find what you're looking for.
+            </Typography>
+            <Chip
+              label="Clear all filters"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+                setSelectedLevel('All');
+              }}
+              color="primary"
+            />
+          </Paper>
+        )}
+      </Container>
+    </Box>
   );
 }

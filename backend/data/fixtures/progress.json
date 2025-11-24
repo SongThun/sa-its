@@ -1,0 +1,64 @@
+{
+  "table": "progress",
+  "data": [
+    {
+      "user_email": "student1@example.com",
+      "course_title": "Python for Beginners",
+      "lessons_completed": [
+        "Introduction to Python",
+        "Installing Python",
+        "Your First Python Program"
+      ],
+      "progress_percentage": 37.5
+    },
+    {
+      "user_email": "student1@example.com",
+      "course_title": "Web Development with React",
+      "lessons_completed": [
+        "What is React?"
+      ],
+      "progress_percentage": 25.0
+    },
+    {
+      "user_email": "student2@example.com",
+      "course_title": "Python for Beginners",
+      "lessons_completed": [
+        "Introduction to Python",
+        "Installing Python",
+        "Your First Python Program",
+        "Variables in Python",
+        "Numbers and Strings",
+        "Quiz: Variables",
+        "If Statements",
+        "Loops"
+      ],
+      "progress_percentage": 100.0
+    },
+    {
+      "user_email": "student2@example.com",
+      "course_title": "Introduction to Machine Learning",
+      "lessons_completed": [
+        "What is Machine Learning?"
+      ],
+      "progress_percentage": 50.0
+    },
+    {
+      "user_email": "student3@example.com",
+      "course_title": "Python for Beginners",
+      "lessons_completed": [
+        "Introduction to Python"
+      ],
+      "progress_percentage": 12.5
+    },
+    {
+      "user_email": "student3@example.com",
+      "course_title": "Web Development with React",
+      "lessons_completed": [
+        "What is React?",
+        "Components",
+        "useState Hook"
+      ],
+      "progress_percentage": 75.0
+    }
+  ]
+}

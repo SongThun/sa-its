@@ -1,9 +1,34 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import {
+  Box,
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  CardMedia,
+  CardActionArea,
+  Grid,
+  TextField,
+  InputAdornment,
+  Chip,
+  LinearProgress,
+  CircularProgress,
+  Stack,
+  Paper,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  PlayCircle as PlayIcon,
+  AccessTime as TimeIcon,
+  BarChart as LevelIcon,
+  Star as StarIcon,
+  School as SchoolIcon,
+  CheckCircle as LessonIcon,
+} from '@mui/icons-material';
+import { useAuth } from '../hooks/useAuth';
 import { courseApi, enrollmentApi } from '../services/api';
 import type { Course, EnrollmentProgress } from '../types';
-import './Dashboard.css';
 
 export default function Dashboard() {
   const { user, isAuthenticated } = useAuth();
@@ -22,6 +47,7 @@ export default function Dashboard() {
       return;
     }
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, navigate]);
 
   const loadData = async () => {
@@ -38,7 +64,6 @@ export default function Dashboard() {
         const ongoing = await enrollmentApi.getOngoingCourses(user.id);
         setOngoingCourses(ongoing);
 
-        // Load progress for enrolled courses
         const progressPromises = user.enrolledCourses.map((courseId) =>
           enrollmentApi.getCourseProgress(user.id, courseId)
         );
@@ -68,155 +93,258 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="dashboard-loading">
-        <div className="spinner"></div>
-        <p>Loading your dashboard...</p>
-      </div>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 2 }}>
+        <CircularProgress />
+        <Typography color="text.secondary">Loading your dashboard...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-container">
-        <div className="dashboard-welcome">
-          <div className="welcome-content">
-            <h1>Welcome back, {user?.firstName}!</h1>
-            <p>Continue your learning journey where you left off.</p>
-          </div>
-          <div className="welcome-stats">
-            <div className="welcome-stat">
-              <span className="stat-number">{user?.enrolledCourses.length || 0}</span>
-              <span className="stat-text">Courses</span>
-            </div>
-            <div className="welcome-stat">
-              <span className="stat-number">{user?.completedLessons.length || 0}</span>
-              <span className="stat-text">Lessons</span>
-            </div>
-          </div>
-        </div>
+    <Box sx={{ bgcolor: 'background.default', minHeight: 'calc(100vh - 64px)', py: 4 }}>
+      <Container maxWidth="xl">
+        {/* Welcome Section */}
+        <Paper
+          sx={{
+            p: 4,
+            mb: 4,
+            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+            color: 'white',
+            borderRadius: 3,
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 3 }}>
+            <Box>
+              <Typography variant="h4" fontWeight={700} gutterBottom>
+                Welcome back, {user?.firstName}!
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                Continue your learning journey where you left off.
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <SchoolIcon />
+                  <Typography variant="h4" fontWeight={700}>
+                    {user?.enrolledCourses.length || 0}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>Courses</Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <LessonIcon />
+                  <Typography variant="h4" fontWeight={700}>
+                    {user?.completedLessons.length || 0}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>Lessons</Typography>
+              </Box>
+            </Stack>
+          </Box>
+        </Paper>
 
+        {/* Continue Learning Section */}
         {ongoingCourses.length > 0 && (
-          <section className="dashboard-section">
-            <div className="section-header">
-              <h2>Continue Learning</h2>
-              <span className="section-subtitle">Pick up where you left off</span>
-            </div>
-            <div className="ongoing-courses">
+          <Box sx={{ mb: 5 }}>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h5" fontWeight={600}>Continue Learning</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Pick up where you left off
+              </Typography>
+            </Box>
+            <Grid container spacing={3}>
               {ongoingCourses.map((course) => (
-                <div
-                  key={course.id}
-                  className="ongoing-course-card"
-                  onClick={() => navigate(`/course/${course.id}`)}
-                >
-                  <div className="ongoing-course-image">
-                    <img src={course.thumbnail} alt={course.title} />
-                    <div className="play-overlay">
-                      <span className="play-icon">▶</span>
-                    </div>
-                  </div>
-                  <div className="ongoing-course-info">
-                    <span className="course-category-badge">{course.category}</span>
-                    <h3>{course.title}</h3>
-                    <p className="instructor">{course.instructor}</p>
-                    <div className="progress-section">
-                      <div className="progress-bar">
-                        <div
-                          className="progress-fill"
-                          style={{ width: `${progressMap[course.id]?.progress || 0}%` }}
-                        ></div>
-                      </div>
-                      <span className="progress-percentage">
-                        {progressMap[course.id]?.progress || 0}% complete
-                      </span>
-                    </div>
-                    <p className="last-accessed">
-                      Last accessed: {course.lastAccessed ? new Date(course.lastAccessed).toLocaleDateString() : 'Never'}
-                    </p>
-                  </div>
-                </div>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={course.id}>
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 },
+                    }}
+                    onClick={() => navigate(`/course/${course.id}`)}
+                  >
+                    <Box sx={{ position: 'relative' }}>
+                      <CardMedia
+                        component="img"
+                        height="160"
+                        image={course.thumbnail}
+                        alt={course.title}
+                      />
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          bgcolor: 'rgba(0,0,0,0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0,
+                          transition: 'opacity 0.2s',
+                          '&:hover': { opacity: 1 },
+                        }}
+                      >
+                        <PlayIcon sx={{ fontSize: 64, color: 'white' }} />
+                      </Box>
+                    </Box>
+                    <CardContent>
+                      <Chip label={course.category} size="small" color="primary" sx={{ mb: 1 }} />
+                      <Typography variant="h6" fontWeight={600} gutterBottom noWrap>
+                        {course.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {course.instructor}
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Progress</Typography>
+                          <Typography variant="body2" fontWeight={500}>
+                            {progressMap[course.id]?.progress || 0}%
+                          </Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={progressMap[course.id]?.progress || 0}
+                          sx={{ height: 8, borderRadius: 4 }}
+                        />
+                      </Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Last accessed: {course.lastAccessed ? new Date(course.lastAccessed).toLocaleDateString() : 'Never'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
               ))}
-            </div>
-          </section>
+            </Grid>
+          </Box>
         )}
 
-        <section className="dashboard-section">
-          <div className="section-header">
-            <h2>Browse Courses</h2>
-            <span className="section-subtitle">Explore our course catalog</span>
-          </div>
+        {/* Browse Courses Section */}
+        <Box>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h5" fontWeight={600}>Browse Courses</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Explore our course catalog
+            </Typography>
+          </Box>
 
-          <div className="filters-bar">
-            <div className="search-box">
-              <span className="search-icon">🔍</span>
-              <input
-                type="text"
-                placeholder="Search courses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="category-filters">
+          {/* Filters */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+            <TextField
+              size="small"
+              placeholder="Search courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ minWidth: 280 }}
+            />
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {categories.map((category) => (
-                <button
+                <Chip
                   key={category}
-                  className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
+                  label={category}
                   onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </button>
+                  color={selectedCategory === category ? 'primary' : 'default'}
+                  variant={selectedCategory === category ? 'filled' : 'outlined'}
+                />
               ))}
-            </div>
-          </div>
+            </Stack>
+          </Box>
 
-          <div className="courses-grid">
+          {/* Course Grid */}
+          <Grid container spacing={3}>
             {filteredCourses.map((course) => (
-              <Link
-                key={course.id}
-                to={`/course/${course.id}`}
-                className="course-card"
-              >
-                <div className="course-image">
-                  <img src={course.thumbnail} alt={course.title} />
-                  {isEnrolled(course.id) && (
-                    <span className="enrolled-badge">Enrolled</span>
-                  )}
-                </div>
-                <div className="course-content">
-                  <span className="course-category">{course.category}</span>
-                  <h3 className="course-title">{course.title}</h3>
-                  <p className="course-instructor">{course.instructor}</p>
-                  <div className="course-meta">
-                    <span className="meta-item">
-                      <span className="meta-icon">⏱️</span>
-                      {course.duration}
-                    </span>
-                    <span className="meta-item">
-                      <span className="meta-icon">📊</span>
-                      {course.level}
-                    </span>
-                  </div>
-                  <div className="course-footer">
-                    <div className="course-rating">
-                      <span className="star">★</span>
-                      <span>{course.rating}</span>
-                      <span className="students">({course.studentsCount.toLocaleString()} students)</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={course.id}>
+                <Card
+                  component={RouterLink}
+                  to={`/course/${course.id}`}
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    textDecoration: 'none',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 },
+                  }}
+                >
+                  <CardActionArea sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+                    <Box sx={{ position: 'relative' }}>
+                      <CardMedia
+                        component="img"
+                        height="140"
+                        image={course.thumbnail}
+                        alt={course.title}
+                      />
+                      {isEnrolled(course.id) && (
+                        <Chip
+                          label="Enrolled"
+                          size="small"
+                          color="success"
+                          sx={{ position: 'absolute', top: 8, right: 8 }}
+                        />
+                      )}
+                    </Box>
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Chip label={course.category} size="small" sx={{ mb: 1 }} />
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                        {course.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {course.instructor}
+                      </Typography>
+                      <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            {course.duration}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <LevelIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            {course.level}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+                        <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                        <Typography variant="body2" fontWeight={500}>{course.rating}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          ({course.studentsCount.toLocaleString()} students)
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
             ))}
-          </div>
+          </Grid>
 
           {filteredCourses.length === 0 && (
-            <div className="no-results">
-              <p>No courses found matching your criteria.</p>
-              <button onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}>
-                Clear filters
-              </button>
-            </div>
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary" gutterBottom>
+                No courses found matching your criteria.
+              </Typography>
+              <Chip
+                label="Clear filters"
+                onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
+                color="primary"
+                sx={{ mt: 1 }}
+              />
+            </Paper>
           )}
-        </section>
-      </div>
-    </div>
+        </Box>
+      </Container>
+    </Box>
   );
 }

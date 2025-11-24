@@ -1,9 +1,37 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import {
+  Box,
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  CardMedia,
+  Grid,
+  Avatar,
+  Button,
+  TextField,
+  Paper,
+  LinearProgress,
+  CircularProgress,
+  Stack,
+  Chip,
+  IconButton,
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Save as SaveIcon,
+  Close as CloseIcon,
+  School as SchoolIcon,
+  CheckCircle as CheckIcon,
+  CalendarMonth as CalendarIcon,
+  LocalFireDepartment as StreakIcon,
+  CameraAlt as CameraIcon,
+  EmojiEvents as TrophyIcon,
+} from '@mui/icons-material';
+import { useAuth } from '../hooks/useAuth';
 import { enrollmentApi } from '../services/api';
 import type { Course } from '../types';
-import './Profile.css';
 
 export default function Profile() {
   const { user, isAuthenticated, updateUser } = useAuth();
@@ -31,6 +59,7 @@ export default function Profile() {
       });
       loadEnrolledCourses();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user, navigate]);
 
   const loadEnrolledCourses = async () => {
@@ -62,174 +91,275 @@ export default function Profile() {
     setIsEditing(false);
   };
 
+  const stats = [
+    { icon: <SchoolIcon />, value: enrolledCourses.length, label: 'Enrolled Courses', color: 'primary.main' },
+    { icon: <CheckIcon />, value: user?.completedLessons.length || 0, label: 'Completed Lessons', color: 'success.main' },
+    { icon: <CalendarIcon />, value: user ? new Date(user.createdAt).toLocaleDateString() : '', label: 'Member Since', color: 'info.main' },
+    { icon: <StreakIcon />, value: 7, label: 'Day Streak', color: 'warning.main' },
+  ];
+
+  const achievements = [
+    { icon: '🎯', name: 'First Steps', desc: 'Completed first lesson', earned: true },
+    { icon: '📖', name: 'Bookworm', desc: 'Enrolled in 3 courses', earned: true },
+    { icon: '🏆', name: 'Champion', desc: 'Complete 10 courses', earned: false },
+    { icon: '⚡', name: 'Speed Learner', desc: 'Finish course in 1 week', earned: false },
+  ];
+
+  const activityData = [60, 80, 45, 90, 70, 30, 50];
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
   if (!user) {
-    return <div className="profile-loading">Loading...</div>;
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <div className="profile-page">
-      <div className="profile-container">
-        <div className="profile-header">
-          <div className="profile-cover"></div>
-          <div className="profile-info">
-            <div className="profile-avatar-section">
-              <img src={user.avatar} alt="Avatar" className="profile-avatar" />
-              <button className="change-avatar-btn">Change Photo</button>
-            </div>
-            <div className="profile-details">
-              {isEditing ? (
-                <div className="edit-form">
-                  <div className="edit-row">
-                    <input
-                      type="text"
-                      value={editForm.firstName}
-                      onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                      placeholder="First Name"
-                    />
-                    <input
-                      type="text"
-                      value={editForm.lastName}
-                      onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                      placeholder="Last Name"
-                    />
-                  </div>
-                  <textarea
-                    value={editForm.bio}
-                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                    placeholder="Tell us about yourself..."
-                    rows={3}
-                  />
-                  <div className="edit-actions">
-                    <button onClick={handleSave} className="save-btn">Save Changes</button>
-                    <button onClick={handleCancel} className="cancel-btn">Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <h1 className="profile-name">{user.firstName} {user.lastName}</h1>
-                  <p className="profile-email">{user.email}</p>
-                  <p className="profile-bio">{user.bio || 'No bio added yet.'}</p>
-                  <button onClick={() => setIsEditing(true)} className="edit-profile-btn">
-                    Edit Profile
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+    <Box sx={{ bgcolor: 'background.default', minHeight: 'calc(100vh - 64px)', py: 4 }}>
+      <Container maxWidth="lg">
+        {/* Profile Header */}
+        <Paper sx={{ mb: 4, overflow: 'hidden' }}>
+          <Box
+            sx={{
+              height: 150,
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+            }}
+          />
+          <Box sx={{ px: 4, pb: 4 }}>
+            <Box sx={{ display: 'flex', gap: 3, mt: -8, flexWrap: 'wrap' }}>
+              <Box sx={{ position: 'relative' }}>
+                <Avatar
+                  src={user.avatar}
+                  sx={{ width: 120, height: 120, border: '4px solid white', boxShadow: 3 }}
+                />
+                <IconButton
+                  size="small"
+                  sx={{
+                    position: 'absolute',
+                    bottom: 4,
+                    right: 4,
+                    bgcolor: 'background.paper',
+                    boxShadow: 1,
+                    '&:hover': { bgcolor: 'background.paper' },
+                  }}
+                >
+                  <CameraIcon fontSize="small" />
+                </IconButton>
+              </Box>
 
-        <div className="profile-stats">
-          <div className="stat-card">
-            <span className="stat-icon">📚</span>
-            <div className="stat-info">
-              <span className="stat-value">{enrolledCourses.length}</span>
-              <span className="stat-label">Enrolled Courses</span>
-            </div>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon">✅</span>
-            <div className="stat-info">
-              <span className="stat-value">{user.completedLessons.length}</span>
-              <span className="stat-label">Completed Lessons</span>
-            </div>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon">📅</span>
-            <div className="stat-info">
-              <span className="stat-value">{new Date(user.createdAt).toLocaleDateString()}</span>
-              <span className="stat-label">Member Since</span>
-            </div>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon">🔥</span>
-            <div className="stat-info">
-              <span className="stat-value">7</span>
-              <span className="stat-label">Day Streak</span>
-            </div>
-          </div>
-        </div>
+              <Box sx={{ flex: 1, pt: 8 }}>
+                {isEditing ? (
+                  <Box sx={{ maxWidth: 500 }}>
+                    <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+                      <TextField
+                        size="small"
+                        label="First Name"
+                        value={editForm.firstName}
+                        onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                        fullWidth
+                      />
+                      <TextField
+                        size="small"
+                        label="Last Name"
+                        value={editForm.lastName}
+                        onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                        fullWidth
+                      />
+                    </Stack>
+                    <TextField
+                      size="small"
+                      label="Bio"
+                      value={editForm.bio}
+                      onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                      multiline
+                      rows={2}
+                      fullWidth
+                      sx={{ mb: 2 }}
+                    />
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<SaveIcon />}
+                        onClick={handleSave}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<CloseIcon />}
+                        onClick={handleCancel}
+                      >
+                        Cancel
+                      </Button>
+                    </Stack>
+                  </Box>
+                ) : (
+                  <>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                      <Typography variant="h4" fontWeight={700}>
+                        {user.firstName} {user.lastName}
+                      </Typography>
+                      <IconButton size="small" onClick={() => setIsEditing(true)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      {user.email}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                      {user.bio || 'No bio added yet.'}
+                    </Typography>
+                  </>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
 
-        <div className="profile-section">
-          <h2>My Courses</h2>
+        {/* Stats */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {stats.map((stat, index) => (
+            <Grid size={{ xs: 6, md: 3 }} key={index}>
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Box sx={{ color: stat.color, mb: 1 }}>{stat.icon}</Box>
+                <Typography variant="h5" fontWeight={700}>{stat.value}</Typography>
+                <Typography variant="body2" color="text.secondary">{stat.label}</Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* My Courses */}
+        <Paper sx={{ p: 3, mb: 4 }}>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            My Courses
+          </Typography>
           {isLoading ? (
-            <div className="loading-courses">Loading courses...</div>
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
           ) : enrolledCourses.length === 0 ? (
-            <div className="no-courses">
-              <p>You haven't enrolled in any courses yet.</p>
-              <button onClick={() => navigate('/courses')} className="browse-courses-btn">
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography color="text.secondary" gutterBottom>
+                You haven't enrolled in any courses yet.
+              </Typography>
+              <Button variant="contained" onClick={() => navigate('/courses')}>
                 Browse Courses
-              </button>
-            </div>
+              </Button>
+            </Box>
           ) : (
-            <div className="enrolled-courses-grid">
-              {enrolledCourses.map((course) => (
-                <div key={course.id} className="enrolled-course-card" onClick={() => navigate(`/course/${course.id}`)}>
-                  <img src={course.thumbnail} alt={course.title} className="course-thumbnail" />
-                  <div className="course-info">
-                    <h3>{course.title}</h3>
-                    <p className="course-instructor">{course.instructor}</p>
-                    <div className="course-progress">
-                      <div className="progress-bar">
-                        <div
-                          className="progress-fill"
-                          style={{ width: `${Math.floor(Math.random() * 60) + 20}%` }}
-                        ></div>
-                      </div>
-                      <span className="progress-text">In Progress</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Grid container spacing={3}>
+              {enrolledCourses.map((course) => {
+                const randomProgress = Math.floor(Math.random() * 60) + 20;
+                return (
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={course.id}>
+                    <Card
+                      sx={{ cursor: 'pointer', '&:hover': { boxShadow: 4 } }}
+                      onClick={() => navigate(`/course/${course.id}`)}
+                    >
+                      <CardMedia
+                        component="img"
+                        height="120"
+                        image={course.thumbnail}
+                        alt={course.title}
+                      />
+                      <CardContent>
+                        <Typography variant="subtitle1" fontWeight={600} noWrap>
+                          {course.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          {course.instructor}
+                        </Typography>
+                        <Box sx={{ mt: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary">Progress</Typography>
+                            <Typography variant="caption" fontWeight={500}>{randomProgress}%</Typography>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={randomProgress}
+                            sx={{ height: 6, borderRadius: 3 }}
+                          />
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
           )}
-        </div>
+        </Paper>
 
-        <div className="profile-section">
-          <h2>Learning Activity</h2>
-          <div className="activity-chart">
-            <div className="chart-header">
-              <span>This Week</span>
-            </div>
-            <div className="chart-bars">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-                <div key={day} className="chart-bar-container">
-                  <div
-                    className="chart-bar"
-                    style={{ height: `${[60, 80, 45, 90, 70, 30, 50][index]}%` }}
-                  ></div>
-                  <span className="chart-label">{day}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Learning Activity */}
+        <Paper sx={{ p: 3, mb: 4 }}>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Learning Activity
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            This Week
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: 150, mt: 2 }}>
+            {activityData.map((value, index) => (
+              <Box key={index} sx={{ textAlign: 'center' }}>
+                <Box
+                  sx={{
+                    width: 40,
+                    height: `${value}%`,
+                    bgcolor: 'primary.main',
+                    borderRadius: 1,
+                    mb: 1,
+                    transition: 'height 0.3s',
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {days[index]}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Paper>
 
-        <div className="profile-section">
-          <h2>Achievements</h2>
-          <div className="achievements-grid">
-            <div className="achievement-card earned">
-              <span className="achievement-icon">🎯</span>
-              <span className="achievement-name">First Steps</span>
-              <span className="achievement-desc">Completed first lesson</span>
-            </div>
-            <div className="achievement-card earned">
-              <span className="achievement-icon">📖</span>
-              <span className="achievement-name">Bookworm</span>
-              <span className="achievement-desc">Enrolled in 3 courses</span>
-            </div>
-            <div className="achievement-card">
-              <span className="achievement-icon">🏆</span>
-              <span className="achievement-name">Champion</span>
-              <span className="achievement-desc">Complete 10 courses</span>
-            </div>
-            <div className="achievement-card">
-              <span className="achievement-icon">⚡</span>
-              <span className="achievement-name">Speed Learner</span>
-              <span className="achievement-desc">Finish course in 1 week</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        {/* Achievements */}
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+            <TrophyIcon color="warning" />
+            <Typography variant="h6" fontWeight={600}>
+              Achievements
+            </Typography>
+          </Box>
+          <Grid container spacing={2}>
+            {achievements.map((achievement, index) => (
+              <Grid size={{ xs: 6, sm: 3 }} key={index}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    textAlign: 'center',
+                    opacity: achievement.earned ? 1 : 0.5,
+                    bgcolor: achievement.earned ? 'primary.50' : 'background.default',
+                    borderColor: achievement.earned ? 'primary.main' : 'divider',
+                  }}
+                >
+                  <Typography variant="h4" sx={{ mb: 1 }}>{achievement.icon}</Typography>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    {achievement.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {achievement.desc}
+                  </Typography>
+                  {achievement.earned && (
+                    <Chip label="Earned" size="small" color="success" sx={{ mt: 1 }} />
+                  )}
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

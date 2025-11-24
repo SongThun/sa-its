@@ -1,59 +1,158 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import './Navbar.css';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Avatar,
+  Menu,
+  MenuItem,
+  IconButton,
+  Container,
+} from '@mui/material';
+import {
+  School as SchoolIcon,
+  Dashboard as DashboardIcon,
+  Login as LoginIcon,
+  PersonAdd as PersonAddIcon,
+  Logout as LogoutIcon,
+  Person as PersonIcon,
+} from '@mui/icons-material';
+import { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleLogout = async () => {
+    handleMenuClose();
     await logout();
     navigate('/login');
   };
 
-  return (
-    <nav className="navbar">
-      <div className="navbar-container">
-        <Link to="/" className="navbar-logo">
-          <span className="logo-icon">📚</span>
-          <span className="logo-text">LearnHub</span>
-        </Link>
+  const handleProfile = () => {
+    handleMenuClose();
+    navigate('/profile');
+  };
 
-        <div className="navbar-links">
-          <Link to="/courses" className="nav-link">
-            Courses
-          </Link>
-          {isAuthenticated ? (
-            <>
-              <Link to="/dashboard" className="nav-link">
-                Dashboard
-              </Link>
-              <div className="navbar-user">
-                <Link to="/profile" className="user-avatar-link">
-                  <img
+  return (
+    <AppBar position="sticky" color="default" elevation={1} sx={{ bgcolor: 'background.paper' }}>
+      <Container maxWidth="xl">
+        <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
+          <Box
+            component={RouterLink}
+            to="/"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              textDecoration: 'none',
+              color: 'inherit',
+            }}
+          >
+            <SchoolIcon sx={{ fontSize: 32, color: 'primary.main', mr: 1 }} />
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              LearnHub
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Button
+              component={RouterLink}
+              to="/courses"
+              color="inherit"
+              sx={{ fontWeight: 500 }}
+            >
+              Courses
+            </Button>
+
+            {isAuthenticated ? (
+              <>
+                <Button
+                  component={RouterLink}
+                  to="/dashboard"
+                  color="inherit"
+                  startIcon={<DashboardIcon />}
+                  sx={{ fontWeight: 500 }}
+                >
+                  Dashboard
+                </Button>
+
+                <IconButton onClick={handleMenuOpen} sx={{ ml: 1 }}>
+                  <Avatar
                     src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=default`}
-                    alt="Avatar"
-                    className="user-avatar"
+                    alt={user?.firstName}
+                    sx={{ width: 36, height: 36 }}
                   />
-                  <span className="user-name">{user?.firstName}</span>
-                </Link>
-                <button onClick={handleLogout} className="logout-btn">
-                  Logout
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="auth-buttons">
-              <Link to="/login" className="nav-link login-link">
-                Login
-              </Link>
-              <Link to="/register" className="nav-link register-link">
-                Register
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-    </nav>
+                </IconButton>
+
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleMenuClose}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  PaperProps={{
+                    sx: { mt: 1, minWidth: 180 },
+                  }}
+                >
+                  <MenuItem disabled sx={{ opacity: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {user?.firstName} {user?.lastName}
+                    </Typography>
+                  </MenuItem>
+                  <MenuItem onClick={handleProfile}>
+                    <PersonIcon sx={{ mr: 1.5, fontSize: 20 }} />
+                    Profile
+                  </MenuItem>
+                  <MenuItem onClick={handleLogout}>
+                    <LogoutIcon sx={{ mr: 1.5, fontSize: 20 }} />
+                    Logout
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  component={RouterLink}
+                  to="/login"
+                  color="inherit"
+                  startIcon={<LoginIcon />}
+                  sx={{ fontWeight: 500 }}
+                >
+                  Login
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/register"
+                  variant="contained"
+                  startIcon={<PersonAddIcon />}
+                >
+                  Register
+                </Button>
+              </Box>
+            )}
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
   );
 }

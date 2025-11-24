@@ -1,0 +1,232 @@
+{
+  "table": "courses",
+  "data": [
+    {
+      "title": "Python for Beginners",
+      "description": "Learn Python programming from scratch. This course covers fundamentals, data structures, functions, and object-oriented programming.",
+      "instructor_email": "instructor1@example.com",
+      "thumbnail": "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800",
+      "duration": "10 hours",
+      "level": "beginner",
+      "category_name": "Programming",
+      "is_published": true,
+      "rating": 4.8,
+      "students_count": 1250,
+      "modules": [
+        {
+          "title": "Getting Started with Python",
+          "description": "Introduction to Python and setting up your development environment",
+          "order": 1,
+          "lessons": [
+            {
+              "title": "Introduction to Python",
+              "type": "video",
+              "duration": "15 min",
+              "order": 1,
+              "content": {
+                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                "description": "Learn what Python is and why it's popular"
+              }
+            },
+            {
+              "title": "Installing Python",
+              "type": "text",
+              "duration": "10 min",
+              "order": 2,
+              "content": {
+                "text": "# Installing Python\n\nFollow these steps to install Python on your computer:\n\n1. Visit python.org\n2. Download the latest version\n3. Run the installer\n4. Verify installation with `python --version`"
+              }
+            },
+            {
+              "title": "Your First Python Program",
+              "type": "text",
+              "duration": "15 min",
+              "order": 3,
+              "content": {
+                "text": "# Hello World\n\n```python\nprint('Hello, World!')\n```\n\nCongratulations! You've written your first Python program."
+              }
+            }
+          ]
+        },
+        {
+          "title": "Variables and Data Types",
+          "description": "Understanding variables, strings, numbers, and basic data types",
+          "order": 2,
+          "lessons": [
+            {
+              "title": "Variables in Python",
+              "type": "video",
+              "duration": "20 min",
+              "order": 1,
+              "content": {
+                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                "description": "Learn how to create and use variables"
+              }
+            },
+            {
+              "title": "Numbers and Strings",
+              "type": "text",
+              "duration": "15 min",
+              "order": 2,
+              "content": {
+                "text": "# Numbers and Strings\n\n## Numbers\n```python\nage = 25\nprice = 19.99\n```\n\n## Strings\n```python\nname = 'John'\nmessage = \"Hello World\"\n```"
+              }
+            },
+            {
+              "title": "Quiz: Variables",
+              "type": "quiz",
+              "duration": "10 min",
+              "order": 3,
+              "content": {
+                "quiz": [
+                  {
+                    "question": "What is a variable?",
+                    "options": ["A container for data", "A type of loop", "A function", "A module"],
+                    "correctAnswer": 0
+                  },
+                  {
+                    "question": "Which is a valid variable name?",
+                    "options": ["1variable", "my-var", "my_variable", "my variable"],
+                    "correctAnswer": 2
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "title": "Control Flow",
+          "description": "If statements, loops, and program flow control",
+          "order": 3,
+          "lessons": [
+            {
+              "title": "If Statements",
+              "type": "text",
+              "duration": "20 min",
+              "order": 1,
+              "content": {
+                "text": "# If Statements\n\n```python\nage = 18\nif age >= 18:\n    print('Adult')\nelse:\n    print('Minor')\n```"
+              }
+            },
+            {
+              "title": "Loops",
+              "type": "video",
+              "duration": "25 min",
+              "order": 2,
+              "content": {
+                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                "description": "For loops and while loops in Python"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Web Development with React",
+      "description": "Build modern web applications with React. Learn components, hooks, state management, and best practices.",
+      "instructor_email": "instructor1@example.com",
+      "thumbnail": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
+      "duration": "15 hours",
+      "level": "intermediate",
+      "category_name": "Web Development",
+      "is_published": true,
+      "rating": 4.7,
+      "students_count": 890,
+      "modules": [
+        {
+          "title": "React Fundamentals",
+          "description": "Core concepts of React",
+          "order": 1,
+          "lessons": [
+            {
+              "title": "What is React?",
+              "type": "video",
+              "duration": "20 min",
+              "order": 1,
+              "content": {
+                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                "description": "Introduction to React library"
+              }
+            },
+            {
+              "title": "Components",
+              "type": "text",
+              "duration": "25 min",
+              "order": 2,
+              "content": {
+                "text": "# React Components\n\n```jsx\nfunction Welcome({ name }) {\n  return <h1>Hello, {name}!</h1>;\n}\n```"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Hooks",
+          "description": "React Hooks for state and effects",
+          "order": 2,
+          "lessons": [
+            {
+              "title": "useState Hook",
+              "type": "video",
+              "duration": "30 min",
+              "order": 1,
+              "content": {
+                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                "description": "Managing state with useState"
+              }
+            },
+            {
+              "title": "useEffect Hook",
+              "type": "text",
+              "duration": "25 min",
+              "order": 2,
+              "content": {
+                "text": "# useEffect Hook\n\n```jsx\nuseEffect(() => {\n  document.title = `Count: ${count}`;\n}, [count]);\n```"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Introduction to Machine Learning",
+      "description": "Start your journey into machine learning. Learn algorithms, model training, and practical applications.",
+      "instructor_email": "instructor1@example.com",
+      "thumbnail": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800",
+      "duration": "20 hours",
+      "level": "intermediate",
+      "category_name": "Data Science",
+      "is_published": true,
+      "rating": 4.9,
+      "students_count": 2100,
+      "modules": [
+        {
+          "title": "ML Fundamentals",
+          "description": "Core concepts of machine learning",
+          "order": 1,
+          "lessons": [
+            {
+              "title": "What is Machine Learning?",
+              "type": "video",
+              "duration": "25 min",
+              "order": 1,
+              "content": {
+                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                "description": "Introduction to ML concepts"
+              }
+            },
+            {
+              "title": "Types of ML",
+              "type": "text",
+              "duration": "20 min",
+              "order": 2,
+              "content": {
+                "text": "# Types of Machine Learning\n\n1. **Supervised Learning** - Learning from labeled data\n2. **Unsupervised Learning** - Finding patterns in unlabeled data\n3. **Reinforcement Learning** - Learning through rewards"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

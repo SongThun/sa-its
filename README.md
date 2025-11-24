@@ -1,7 +1,7 @@
 # SA-ITS
 
-HCMUT-CSE. Software Architecture 
-Assignment: Intelligent Tutoring System 
+HCMUT-CSE. Software Architecture
+Assignment: Intelligent Tutoring System
 
 ## Project Structure
 
@@ -61,11 +61,11 @@ sa-its/
    ```bash
    # Run all testcase
    ./run pytest --create-db
-   
+
    # Run specific test (test file, test case)
    ./run pytest <test_case>
    ```
-   
+
 
 ### Frontend Setup
 

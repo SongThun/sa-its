@@ -1,40 +1,40 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useState, type ReactNode } from 'react';
 import type { User } from '../types';
 import { authApi } from '../services/api';
 
-interface AuthContextType {
+interface AuthResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  register: (email: string, password: string, firstName: string, lastName: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
-  updateUser: (updates: Partial<User>) => Promise<void>;
+  updateUser: (updates: Partial<User>) => Promise<boolean>;
   refreshUser: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// eslint-disable-next-line react-refresh/only-export-components
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => authApi.getCurrentUser());
 
-  useEffect(() => {
-    const currentUser = authApi.getCurrentUser();
-    setUser(currentUser);
-    setIsLoading(false);
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<AuthResult> => {
     try {
       const loggedInUser = await authApi.login(email, password);
       if (loggedInUser) {
         setUser(loggedInUser);
-        return true;
+        return { success: true };
       }
-      return false;
-    } catch {
-      return false;
+      return { success: false, error: 'Invalid email or password' };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An error occurred';
+      return { success: false, error: message };
     }
   };
 
@@ -43,16 +43,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     firstName: string,
     lastName: string
-  ): Promise<boolean> => {
+  ): Promise<AuthResult> => {
     try {
       const newUser = await authApi.register(email, password, firstName, lastName);
       if (newUser) {
         setUser(newUser);
-        return true;
+        return { success: true };
       }
-      return false;
-    } catch {
-      return false;
+      return { success: false, error: 'Registration failed' };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An error occurred';
+      return { success: false, error: message };
     }
   };
 
@@ -61,13 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  const updateUser = async (updates: Partial<User>): Promise<void> => {
+  const updateUser = async (updates: Partial<User>): Promise<boolean> => {
     if (user) {
       const updatedUser = await authApi.updateProfile(user.id, updates);
       if (updatedUser) {
         setUser(updatedUser);
+        return true;
       }
     }
+    return false;
   };
 
   const refreshUser = () => {
@@ -80,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
-        isLoading,
+        isLoading: false,
         login,
         register,
         logout,
@@ -91,12 +94,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }

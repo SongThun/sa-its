@@ -1,68 +1,177 @@
 import type { User, Course, EnrollmentProgress } from '../types';
 import { mockUsers, mockCourses } from '../data/mockData';
+import { apiClient, type ApiError } from './apiClient';
 
-// Simulate API delay
+// Simulate API delay for mock endpoints
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Auth API
+// Backend API response types
+interface BackendUser {
+  id: number;
+  username: string;
+  email: string;
+  fullname: string;
+  first_name?: string;
+  last_name?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+interface LoginResponse {
+  user: BackendUser;
+  tokens: {
+    access: string;
+    refresh: string;
+  };
+}
+
+interface RegisterResponse {
+  user: BackendUser;
+  message: string;
+}
+
+interface ProfileResponse extends BackendUser {
+  first_name: string;
+  last_name: string;
+}
+
+// Transform backend user to frontend user format
+function transformUser(backendUser: BackendUser): User {
+  // Parse fullname into first/last name if not provided separately
+  let firstName = backendUser.first_name || '';
+  let lastName = backendUser.last_name || '';
+
+  if (!firstName && backendUser.fullname) {
+    const parts = backendUser.fullname.split(' ');
+    firstName = parts[0] || '';
+    lastName = parts.slice(1).join(' ') || '';
+  }
+
+  return {
+    id: String(backendUser.id),
+    email: backendUser.email,
+    firstName,
+    lastName,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || backendUser.username}`,
+    bio: '',
+    enrolledCourses: [],
+    completedLessons: [],
+    createdAt: backendUser.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+  };
+}
+
+// Auth API - Uses real backend
 export const authApi = {
   login: async (email: string, password: string): Promise<User | null> => {
-    await delay(500);
-    const user = mockUsers.find(u => u.email === email);
-    if (user && password.length >= 6) {
+    try {
+      const response = await apiClient.post<LoginResponse>('/auth/login/', {
+        email,
+        password,
+      });
+
+      // Save tokens
+      apiClient.saveTokens(response.tokens);
+
+      // Transform and save user
+      const user = transformUser(response.user);
       localStorage.setItem('currentUser', JSON.stringify(user));
+
       return user;
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error('Login error:', apiError.message);
+      throw new Error(apiError.message || 'Invalid email or password');
     }
-    return null;
   },
 
-  register: async (email: string, _password: string, firstName: string, lastName: string): Promise<User | null> => {
-    await delay(500);
-    const existingUser = mockUsers.find(u => u.email === email);
-    if (existingUser) {
-      throw new Error('User already exists');
+  register: async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string
+  ): Promise<User | null> => {
+    try {
+      // Generate username from email
+      const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      const fullname = `${firstName} ${lastName}`.trim();
+
+      await apiClient.post<RegisterResponse>('/auth/register/', {
+        email,
+        password,
+        password_confirm: password,
+        username,
+        fullname,
+      });
+
+      // After registration, login to get tokens
+      return await authApi.login(email, password);
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error('Register error:', apiError.message);
+      throw new Error(apiError.message || 'Registration failed');
     }
-
-    const newUser: User = {
-      id: String(mockUsers.length + 1),
-      email,
-      firstName,
-      lastName,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
-      bio: '',
-      enrolledCourses: [],
-      completedLessons: [],
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    mockUsers.push(newUser);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    return newUser;
   },
 
   logout: async (): Promise<void> => {
-    await delay(200);
+    apiClient.removeTokens();
     localStorage.removeItem('currentUser');
   },
 
   getCurrentUser: (): User | null => {
+    // Check if we have valid tokens
+    if (!apiClient.hasTokens()) {
+      localStorage.removeItem('currentUser');
+      return null;
+    }
+
     const userStr = localStorage.getItem('currentUser');
     return userStr ? JSON.parse(userStr) : null;
   },
 
   updateProfile: async (userId: string, updates: Partial<User>): Promise<User | null> => {
-    await delay(300);
-    const userIndex = mockUsers.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-      mockUsers[userIndex] = { ...mockUsers[userIndex], ...updates };
-      localStorage.setItem('currentUser', JSON.stringify(mockUsers[userIndex]));
-      return mockUsers[userIndex];
+    try {
+      // Transform frontend fields to backend fields
+      const backendUpdates: Record<string, unknown> = {};
+
+      if (updates.firstName !== undefined) {
+        backendUpdates.first_name = updates.firstName;
+      }
+      if (updates.lastName !== undefined) {
+        backendUpdates.last_name = updates.lastName;
+      }
+      if (updates.firstName !== undefined || updates.lastName !== undefined) {
+        backendUpdates.fullname = `${updates.firstName || ''} ${updates.lastName || ''}`.trim();
+      }
+      if (updates.bio !== undefined) {
+        // Note: bio might not be supported by backend yet
+      }
+
+      const response = await apiClient.patch<ProfileResponse>('/auth/profile/', backendUpdates);
+
+      const user = transformUser(response);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+
+      return user;
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error('Update profile error:', apiError.message);
+      return null;
     }
-    return null;
+  },
+
+  refreshCurrentUser: async (): Promise<User | null> => {
+    try {
+      const response = await apiClient.get<ProfileResponse>('/auth/profile/');
+      const user = transformUser(response);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      return user;
+    } catch {
+      return null;
+    }
   },
 };
 
-// Course API
+// Course API - Mock (to be replaced with real API later)
 export const courseApi = {
   getAllCourses: async (): Promise<Course[]> => {
     await delay(300);
@@ -96,7 +205,7 @@ export const courseApi = {
   },
 };
 
-// Enrollment API
+// Enrollment API - Mock (to be replaced with real API later)
 export const enrollmentApi = {
   enrollInCourse: async (userId: string, courseId: string): Promise<boolean> => {
     await delay(400);
@@ -165,7 +274,7 @@ export const enrollmentApi = {
   },
 };
 
-// Progress API
+// Progress API - Mock (to be replaced with real API later)
 export const progressApi = {
   completeLesson: async (userId: string, lessonId: string): Promise<boolean> => {
     await delay(300);
