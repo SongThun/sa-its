@@ -5,15 +5,11 @@ Business logic is handled by the service layer.
 """
 
 from rest_framework import serializers
+from django.contrib.auth.password_validation import validate_password
 from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """
-    Serializer for User model (public view).
-    Used for returning user data in responses.
-    """
-
     class Meta:
         model = User
         fields = ["id", "username", "email", "fullname", "created_at"]
@@ -21,24 +17,28 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserRegistrationSerializer(serializers.Serializer):
-    """
-    Serializer for user registration input validation.
-    Only validates input format - business logic in RegistrationService.
-    """
-
     username = serializers.CharField(max_length=150, required=True)
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True)
     password_confirm = serializers.CharField(write_only=True, required=True)
     fullname = serializers.CharField(max_length=255, required=False, default="")
 
+    def validate_email(self, value):
+        return value.strip().lower()
+    
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({
+                'password_confirm': 'Passwords do not match.'
+            })
+        return attrs
+    
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """
-    Serializer for user profile (includes private info).
-    Used for profile retrieval and updates.
-    """
-
     class Meta:
         model = User
         fields = [
@@ -46,8 +46,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "fullname",
-            "first_name",
-            "last_name",
             "created_at",
             "updated_at",
         ]
@@ -55,28 +53,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class ResetPasswordSerializer(serializers.Serializer):
-    """
-    Serializer for password change input validation.
-    Only validates input format - business logic in PasswordService.
-    """
-
     old_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True)
     new_password_confirm = serializers.CharField(required=True, write_only=True)
 
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({
+                'new_password_confirm': 'Passwords do not match.'
+            })
+        return attrs
+
 
 class UserLoginSerializer(serializers.Serializer):
-    """
-    Serializer for login input validation.
-    Only validates input format - business logic in AuthenticationService.
-    """
-
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
-
-
-class LoginResponseSerializer(serializers.Serializer):
-    """Serializer for login response data."""
-
-    user = UserSerializer()
-    tokens = serializers.DictField()

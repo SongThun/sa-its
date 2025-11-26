@@ -1,407 +1,182 @@
 """
-Tests for the service layer.
+Tests for the authentication service layer.
 Tests business logic independently of HTTP layer.
 """
 
 import pytest
 from django.contrib.auth import get_user_model
+from rest_framework.exceptions import ValidationError
 
-from apps.authentication.services import (
-    RegistrationService,
-    AuthenticationService,
-    ProfileService,
-    PasswordService,
-)
+from apps.authentication.services.authentication_service import AuthenticationService
 
 User = get_user_model()
 
 
 @pytest.mark.django_db
-class TestRegistrationService:
-    """Tests for RegistrationService."""
-
-    def setup_method(self):
-        self.service = RegistrationService()
-
-    def test_successful_registration(self):
-        result = self.service.register(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-            password_confirm="SecurePass123!",
-            fullname="Test User",
-        )
-
-        assert result.success is True
-        assert result.data is not None
-        assert result.data.email == "test@example.com"
-        assert result.data.username == "testuser"
-        assert result.data.fullname == "Test User"
-        assert result.data.check_password("SecurePass123!")
-
-    def test_registration_email_normalized(self):
-        result = self.service.register(
-            email="  TEST@EXAMPLE.COM  ",
-            username="testuser",
-            password="SecurePass123!",
-            password_confirm="SecurePass123!",
-        )
-
-        assert result.success is True
-        assert result.data.email == "test@example.com"
-
-    def test_registration_password_mismatch(self):
-        result = self.service.register(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-            password_confirm="DifferentPass123!",
-        )
-
-        assert result.success is False
-        assert len(result.errors) == 1
-        assert result.errors[0].field == "password"
-        assert "match" in result.errors[0].message.lower()
-
-    def test_registration_weak_password(self):
-        result = self.service.register(
-            email="test@example.com",
-            username="testuser",
-            password="123",
-            password_confirm="123",
-        )
-
-        assert result.success is False
-        assert len(result.errors) == 1
-        assert result.errors[0].field == "password"
-
-    def test_registration_duplicate_email(self):
-        # Create existing user
-        User.objects.create_user(
-            email="test@example.com",
-            username="existinguser",
-            password="ExistingPass123!",
-        )
-
-        result = self.service.register(
-            email="test@example.com",
-            username="newuser",
-            password="SecurePass123!",
-            password_confirm="SecurePass123!",
-        )
-
-        assert result.success is False
-        assert result.errors[0].field == "email"
-
-    def test_registration_duplicate_username(self):
-        User.objects.create_user(
-            email="existing@example.com",
-            username="testuser",
-            password="ExistingPass123!",
-        )
-
-        result = self.service.register(
-            email="new@example.com",
-            username="testuser",
-            password="SecurePass123!",
-            password_confirm="SecurePass123!",
-        )
-
-        assert result.success is False
-        assert result.errors[0].field == "username"
-
-
-@pytest.mark.django_db
-class TestAuthenticationService:
-    """Tests for AuthenticationService."""
+class TestAuthenticationServiceRegister:
+    """Tests for AuthenticationService.register()"""
 
     def setup_method(self):
         self.service = AuthenticationService()
 
+    def test_successful_registration(self):
+        """User can register with valid data"""
+        user = self.service.register(
+            email="test@example.com",
+            username="testuser",
+            password="SecurePass123!",
+            fullname="Test User",
+        )
+
+        assert user.email == "test@example.com"
+        assert user.username == "testuser"
+        assert user.fullname == "Test User"
+        assert user.check_password("SecurePass123!")
+        assert user.is_active is True
+
+    def test_registration_with_duplicate_email(self):
+        """Registration fails when email already exists"""
+        User.objects.create_user(
+            email="test@example.com",
+            username="existing",
+            password="Pass123!",
+        )
+
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.register(
+                email="test@example.com",
+                username="newuser",
+                password="SecurePass123!",
+            )
+
+        assert "email" in exc_info.value.detail
+
+    def test_registration_minimal_data(self):
+        """User can register without fullname"""
+        user = self.service.register(
+            email="test@example.com",
+            username="testuser",
+            password="SecurePass123!",
+        )
+
+        assert user.fullname == ""
+
+
+@pytest.mark.django_db
+class TestAuthenticationServiceLogin:
+    """Tests for AuthenticationService.login()"""
+
+    def setup_method(self):
+        self.service = AuthenticationService()
+        self.test_user = User.objects.create_user(
+            email="test@example.com",
+            username="testuser",
+            password="SecurePass123!",
+        )
+
     def test_successful_login(self):
-        User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-        )
-
-        result = self.service.login(
+        """User can login with correct credentials"""
+        user = self.service.login(
             email="test@example.com",
             password="SecurePass123!",
         )
 
-        assert result.success is True
-        assert "user" in result.data
-        assert "tokens" in result.data
-        assert "access" in result.data["tokens"]
-        assert "refresh" in result.data["tokens"]
+        assert user == self.test_user
 
-    def test_login_email_case_insensitive(self):
-        User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-        )
+    def test_login_with_wrong_password(self):
+        """Login fails with incorrect password"""
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.login(
+                email="test@example.com",
+                password="WrongPassword",
+            )
 
-        result = self.service.login(
-            email="TEST@EXAMPLE.COM",
-            password="SecurePass123!",
-        )
+        assert "detail" in exc_info.value.detail
+        assert "password" in str(exc_info.value.detail["detail"]).lower()
 
-        assert result.success is True
+    def test_login_with_nonexistent_email(self):
+        """Login fails when user doesn't exist"""
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.login(
+                email="nonexistent@example.com",
+                password="AnyPassword123!",
+            )
 
-    def test_login_invalid_credentials(self):
-        User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-        )
+        assert "detail" in exc_info.value.detail
 
-        result = self.service.login(
-            email="test@example.com",
-            password="WrongPassword",
-        )
+    def test_login_with_inactive_account(self):
+        """Login fails when account is disabled"""
+        self.test_user.is_active = False
+        self.test_user.save()
 
-        assert result.success is False
-        assert "detail" in result.error_dict()
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.login(
+                email="test@example.com",
+                password="SecurePass123!",
+            )
 
-    def test_login_nonexistent_user(self):
-        result = self.service.login(
-            email="nonexistent@example.com",
-            password="AnyPassword123!",
-        )
-
-        assert result.success is False
-
-    def test_login_disabled_user(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-        )
-        user.is_active = False
-        user.save()
-
-        result = self.service.login(
-            email="test@example.com",
-            password="SecurePass123!",
-        )
-
-        assert result.success is False
-        assert "disabled" in result.errors[0].message.lower()
+        assert "detail" in exc_info.value.detail
+        assert "incorrect" in str(exc_info.value.detail["detail"]).lower()
 
 
 @pytest.mark.django_db
-class TestProfileService:
-    """Tests for ProfileService."""
+class TestAuthenticationServiceResetPassword:
+    """Tests for AuthenticationService.reset_password()"""
 
     def setup_method(self):
-        self.service = ProfileService()
-
-    def test_get_profile(self):
-        user = User.objects.create_user(
+        self.service = AuthenticationService()
+        self.test_user = User.objects.create_user(
             email="test@example.com",
             username="testuser",
-            password="SecurePass123!",
+            password="OldPassword123!",
         )
 
-        result = self.service.get_profile(user)
-
-        assert result.success is True
-        assert result.data == user
-
-    def test_update_profile(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
+    def test_successful_password_reset(self):
+        """User can change password with correct old password"""
+        self.service.reset_password(
+            user=self.test_user,
+            old_password="OldPassword123!",
+            new_password="NewPassword123!",
         )
 
-        result = self.service.update_profile(
-            user=user,
-            data={"fullname": "Updated Name", "first_name": "John"},
-        )
+        self.test_user.refresh_from_db()
+        assert self.test_user.check_password("NewPassword123!")
 
-        assert result.success is True
-        assert result.data.fullname == "Updated Name"
-        assert result.data.first_name == "John"
+    def test_reset_password_with_wrong_old_password(self):
+        """Password reset fails with incorrect old password"""
+        with pytest.raises(ValidationError) as exc_info:
+            self.service.reset_password(
+                user=self.test_user,
+                old_password="WrongPassword",
+                new_password="NewPassword123!",
+            )
 
-    def test_update_profile_ignores_readonly_fields(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-        )
-        original_email = user.email
+        assert "old_password" in exc_info.value.detail
 
-        result = self.service.update_profile(
-            user=user,
-            data={"email": "new@example.com", "fullname": "New Name"},
-        )
-
-        assert result.success is True
-        assert result.data.email == original_email
-        assert result.data.fullname == "New Name"
-
-    def test_get_user_by_id(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-        )
-
-        result = self.service.get_user_by_id(user.id)
-
-        assert result.success is True
-        assert result.data.id == user.id
-
-    def test_get_user_by_id_not_found(self):
-        result = self.service.get_user_by_id(99999)
-
-        assert result.success is False
-        assert result.errors[0].code == "user_not_found"
-
-    def test_search_users(self):
-        User.objects.create_user(
-            email="john@example.com",
-            username="johndoe",
-            password="Pass123!",
-            fullname="John Doe",
-        )
-        User.objects.create_user(
-            email="jane@example.com",
-            username="janedoe",
-            password="Pass123!",
-            fullname="Jane Doe",
-        )
-        User.objects.create_user(
-            email="bob@example.com",
-            username="bob",
-            password="Pass123!",
-            fullname="Bob Smith",
-        )
-
-        result = self.service.search_users("doe")
-
-        assert result.success is True
-        assert len(result.data) == 2
-
-    def test_deactivate_user(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-        )
-
-        result = self.service.deactivate_user(user)
-
-        assert result.success is True
-        assert result.data.is_active is False
-
-    def test_activate_user(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="SecurePass123!",
-        )
-        user.is_active = False
-        user.save()
-
-        result = self.service.activate_user(user)
-
-        assert result.success is True
-        assert result.data.is_active is True
+        # Verify password wasn't changed
+        self.test_user.refresh_from_db()
+        assert self.test_user.check_password("OldPassword123!")
 
 
 @pytest.mark.django_db
-class TestPasswordService:
-    """Tests for PasswordService."""
+class TestAuthenticationServiceGenerateToken:
+    """Tests for AuthenticationService.generate_token()"""
 
     def setup_method(self):
-        self.service = PasswordService()
-
-    def test_successful_password_change(self):
-        user = User.objects.create_user(
+        self.service = AuthenticationService()
+        self.test_user = User.objects.create_user(
             email="test@example.com",
             username="testuser",
-            password="OldPassword123!",
+            password="SecurePass123!",
         )
 
-        result = self.service.change_password(
-            user=user,
-            old_password="OldPassword123!",
-            new_password="NewPassword123!",
-            new_password_confirm="NewPassword123!",
-        )
+    def test_generate_token(self):
+        """Service generates valid JWT tokens"""
+        tokens = self.service.generate_token(self.test_user)
 
-        assert result.success is True
-        user.refresh_from_db()
-        assert user.check_password("NewPassword123!")
-
-    def test_password_change_wrong_old_password(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="OldPassword123!",
-        )
-
-        result = self.service.change_password(
-            user=user,
-            old_password="WrongPassword",
-            new_password="NewPassword123!",
-            new_password_confirm="NewPassword123!",
-        )
-
-        assert result.success is False
-        assert result.errors[0].field == "old_password"
-
-    def test_password_change_mismatch(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="OldPassword123!",
-        )
-
-        result = self.service.change_password(
-            user=user,
-            old_password="OldPassword123!",
-            new_password="NewPassword123!",
-            new_password_confirm="DifferentPassword123!",
-        )
-
-        assert result.success is False
-        assert result.errors[0].field == "new_password"
-
-    def test_password_change_weak_password(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="OldPassword123!",
-        )
-
-        result = self.service.change_password(
-            user=user,
-            old_password="OldPassword123!",
-            new_password="123",
-            new_password_confirm="123",
-        )
-
-        assert result.success is False
-        assert result.errors[0].field == "new_password"
-
-    def test_reset_password(self):
-        user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="OldPassword123!",
-        )
-
-        result = self.service.reset_password(
-            user=user,
-            new_password="ResetPassword123!",
-            new_password_confirm="ResetPassword123!",
-        )
-
-        assert result.success is True
-        user.refresh_from_db()
-        assert user.check_password("ResetPassword123!")
+        assert "access" in tokens
+        assert "refresh" in tokens
+        assert isinstance(tokens["access"], str)
+        assert isinstance(tokens["refresh"], str)
+        assert len(tokens["access"]) > 0
+        assert len(tokens["refresh"]) > 0

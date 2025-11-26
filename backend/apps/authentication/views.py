@@ -8,7 +8,7 @@ Follows Dependency Inversion Principle - views depend on service abstractions.
 
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 
 from .serializers import (
     UserRegistrationSerializer,
@@ -17,170 +17,106 @@ from .serializers import (
     ResetPasswordSerializer,
     UserLoginSerializer,
 )
-from .services import (
-    RegistrationService,
-    AuthenticationService,
-    ProfileService,
-    PasswordService,
-)
+from apps.authentication.services import AuthenticationService, ProfileService
 
 
-class UserRegisterView(APIView):
-    """
-    User registration endpoint.
-    POST /api/auth/register/
-    """
-
+class UserRegisterView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.registration_service = RegistrationService()
+    serializer_class = UserRegistrationSerializer
 
     def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        result = self.registration_service.register(
+        auth_service = AuthenticationService()
+        user = auth_service.register(
             email=serializer.validated_data["email"],
             username=serializer.validated_data["username"],
             password=serializer.validated_data["password"],
-            password_confirm=serializer.validated_data["password_confirm"],
             fullname=serializer.validated_data.get("fullname", ""),
         )
 
-        if not result.success:
-            return Response(result.error_dict(), status=status.HTTP_400_BAD_REQUEST)
+        tokens = auth_service.generate_token(user)
 
         return Response(
             {
-                "user": UserSerializer(result.data).data,
+                "tokens": tokens,
+                "user": UserSerializer(instance=user).data,
                 "message": "User registered successfully",
             },
             status=status.HTTP_201_CREATED,
         )
 
 
-class LoginView(APIView):
-    """
-    Custom login endpoint that returns user data along with JWT tokens.
-    POST /api/auth/login/
-    """
-
+class LoginView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.auth_service = AuthenticationService()
+    serializer_class = UserLoginSerializer
 
     def post(self, request):
-        serializer = UserLoginSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        result = self.auth_service.login(
+        auth_service = AuthenticationService()
+        user = auth_service.login(
             email=serializer.validated_data["email"],
             password=serializer.validated_data["password"],
         )
 
-        if not result.success:
-            return Response(result.error_dict(), status=status.HTTP_400_BAD_REQUEST)
+        tokens = auth_service.generate_token(user)
 
         return Response(
             {
-                "user": UserSerializer(result.data["user"]).data,
-                "tokens": result.data["tokens"],
+                "tokens": tokens,
+                "user": UserSerializer(user).data,
             },
             status=status.HTTP_200_OK,
         )
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
-    """
-    Get/Update current user profile.
-    GET/PUT/PATCH /api/auth/profile/
-    """
-
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.profile_service = ProfileService()
 
     def get_object(self):
         return self.request.user
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
-        serializer = self.get_serializer(data=request.data, partial=partial)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 
-        result = self.profile_service.update_profile(
-            user=self.request.user,
+        profile_service = ProfileService()
+        user = profile_service.update_profile(
+            user=instance,
             data=serializer.validated_data,
         )
 
-        if not result.success:
-            return Response(result.error_dict(), status=status.HTTP_400_BAD_REQUEST)
-
         return Response(
-            UserProfileSerializer(result.data).data,
+            UserProfileSerializer(user).data,
             status=status.HTTP_200_OK,
         )
 
 
-class UserDetailView(APIView):
-    """
-    Get user details by ID (public).
-    GET /api/auth/users/{id}/
-    """
-
-    permission_classes = [permissions.IsAuthenticated]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.profile_service = ProfileService()
-
-    def get(self, request, pk):
-        result = self.profile_service.get_user_by_id(pk)
-
-        if not result.success:
-            return Response(result.error_dict(), status=status.HTTP_404_NOT_FOUND)
-
-        return Response(
-            UserSerializer(result.data).data,
-            status=status.HTTP_200_OK,
-        )
-
-
-class ResetPasswordView(APIView):
+class ResetPasswordView(GenericAPIView):
     """
     Change password for authenticated user.
     POST /api/auth/reset-password/
     """
 
     permission_classes = [permissions.IsAuthenticated]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.password_service = PasswordService()
+    serializer_class = ResetPasswordSerializer
 
     def post(self, request):
-        serializer = ResetPasswordSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        result = self.password_service.change_password(
+        auth_service = AuthenticationService()
+        auth_service.reset_password(
             user=request.user,
             old_password=serializer.validated_data["old_password"],
             new_password=serializer.validated_data["new_password"],
-            new_password_confirm=serializer.validated_data["new_password_confirm"],
         )
-
-        if not result.success:
-            return Response(result.error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             {
