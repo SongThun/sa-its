@@ -25,18 +25,18 @@ class UserRegistrationSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         return value.strip().lower()
-    
+
     def validate_password(self, value):
         validate_password(value)
         return value
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({
-                'password_confirm': 'Passwords do not match.'
-            })
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError(
+                {"password_confirm": "Passwords do not match."}
+            )
         return attrs
-    
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,10 +62,10 @@ class ResetPasswordSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({
-                'new_password_confirm': 'Passwords do not match.'
-            })
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "Passwords do not match."}
+            )
         return attrs
 
 

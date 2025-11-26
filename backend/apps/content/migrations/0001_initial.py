@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -15,102 +14,211 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Category',
+            name="Category",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True)),
-                ('description', models.TextField(blank=True)),
-                ('icon', models.CharField(blank=True, max_length=50)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100, unique=True)),
+                ("description", models.TextField(blank=True)),
+                ("icon", models.CharField(blank=True, max_length=50)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'verbose_name_plural': 'Categories',
-                'db_table': 'categories',
-                'ordering': ['name'],
+                "verbose_name_plural": "Categories",
+                "db_table": "categories",
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='Lesson',
+            name="Lesson",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('type', models.CharField(choices=[('video', 'Video'), ('text', 'Text/Article'), ('quiz', 'Quiz'), ('interactive', 'Interactive')], default='text', max_length=20)),
-                ('duration', models.CharField(max_length=50)),
-                ('order', models.PositiveIntegerField(default=0)),
-                ('content', models.JSONField(default=dict)),
-                ('is_free', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[
+                            ("video", "Video"),
+                            ("text", "Text/Article"),
+                            ("quiz", "Quiz"),
+                            ("interactive", "Interactive"),
+                        ],
+                        default="text",
+                        max_length=20,
+                    ),
+                ),
+                ("duration", models.CharField(max_length=50)),
+                ("order", models.PositiveIntegerField(default=0)),
+                ("content", models.JSONField(default=dict)),
+                ("is_free", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'db_table': 'lessons',
-                'ordering': ['module', 'order'],
+                "db_table": "lessons",
+                "ordering": ["module", "order"],
             },
         ),
         migrations.CreateModel(
-            name='Course',
+            name="Course",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('description', models.TextField()),
-                ('thumbnail', models.URLField(blank=True)),
-                ('duration', models.CharField(max_length=50)),
-                ('level', models.CharField(choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Advanced')], default='beginner', max_length=20)),
-                ('is_published', models.BooleanField(default=False)),
-                ('rating', models.FloatField(default=0.0)),
-                ('students_count', models.PositiveIntegerField(default=0)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('category', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='courses', to='content.category')),
-                ('instructor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='courses_taught', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField()),
+                ("thumbnail", models.URLField(blank=True)),
+                ("duration", models.CharField(max_length=50)),
+                (
+                    "level",
+                    models.CharField(
+                        choices=[
+                            ("beginner", "Beginner"),
+                            ("intermediate", "Intermediate"),
+                            ("advanced", "Advanced"),
+                        ],
+                        default="beginner",
+                        max_length=20,
+                    ),
+                ),
+                ("is_published", models.BooleanField(default=False)),
+                ("rating", models.FloatField(default=0.0)),
+                ("students_count", models.PositiveIntegerField(default=0)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "category",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="courses",
+                        to="content.category",
+                    ),
+                ),
+                (
+                    "instructor",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="courses_taught",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'courses',
-                'ordering': ['-created_at'],
+                "db_table": "courses",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='LearningObject',
+            name="LearningObject",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('type', models.CharField(choices=[('explanation', 'Explanation'), ('example', 'Example'), ('exercise', 'Exercise'), ('assessment', 'Assessment')], max_length=20)),
-                ('content', models.JSONField(default=dict)),
-                ('difficulty', models.FloatField(default=0.5)),
-                ('estimated_time', models.PositiveIntegerField(default=5)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('lesson', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='learning_objects', to='content.lesson')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[
+                            ("explanation", "Explanation"),
+                            ("example", "Example"),
+                            ("exercise", "Exercise"),
+                            ("assessment", "Assessment"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("content", models.JSONField(default=dict)),
+                ("difficulty", models.FloatField(default=0.5)),
+                ("estimated_time", models.PositiveIntegerField(default=5)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "lesson",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="learning_objects",
+                        to="content.lesson",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'learning_objects',
-                'ordering': ['lesson', 'difficulty'],
+                "db_table": "learning_objects",
+                "ordering": ["lesson", "difficulty"],
             },
         ),
         migrations.CreateModel(
-            name='Module',
+            name="Module",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True)),
-                ('order', models.PositiveIntegerField(default=0)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('course', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='modules', to='content.course')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True)),
+                ("order", models.PositiveIntegerField(default=0)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "course",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="modules",
+                        to="content.course",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'modules',
-                'ordering': ['course', 'order'],
-                'unique_together': {('course', 'order')},
+                "db_table": "modules",
+                "ordering": ["course", "order"],
+                "unique_together": {("course", "order")},
             },
         ),
         migrations.AddField(
-            model_name='lesson',
-            name='module',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lessons', to='content.module'),
+            model_name="lesson",
+            name="module",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="lessons",
+                to="content.module",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='lesson',
-            unique_together={('module', 'order')},
+            name="lesson",
+            unique_together={("module", "order")},
         ),
     ]

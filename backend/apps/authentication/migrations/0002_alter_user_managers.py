@@ -5,16 +5,15 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('authentication', '0001_initial'),
+        ("authentication", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelManagers(
-            name='user',
+            name="user",
             managers=[
-                ('objects', apps.authentication.models.UserManager()),
+                ("objects", apps.authentication.models.UserManager()),
             ],
         ),
     ]

@@ -3,6 +3,7 @@ from rest_framework.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 
+
 class AuthenticationService:
     def register(
         self,
@@ -29,7 +30,7 @@ class AuthenticationService:
             raise ValidationError({"detail": "Incorrect email or password"})
 
         return user
-    
+
     def reset_password(
         self,
         user: User,
@@ -44,7 +45,4 @@ class AuthenticationService:
 
     def generate_token(self, user: User) -> dict:
         refresh = RefreshToken.for_user(user)
-        return {
-            "refresh": str(refresh),
-            "access": str(refresh.access_token)
-        }
+        return {"refresh": str(refresh), "access": str(refresh.access_token)}

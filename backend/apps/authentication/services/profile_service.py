@@ -3,9 +3,10 @@ Profile Service - handles user profile operations.
 Single Responsibility: Only manages profile viewing and updates.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from apps.authentication.models import User
+
 
 class ProfileService:
     EDITABLE_FIELDS = {"username", "fullname"}
