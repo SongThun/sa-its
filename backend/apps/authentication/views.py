@@ -34,6 +34,7 @@ class UserRegisterView(GenericAPIView):
             username=serializer.validated_data["username"],
             password=serializer.validated_data["password"],
             fullname=serializer.validated_data.get("fullname", ""),
+            role=serializer.validated_data.get("role", "student"),
         )
 
         tokens = auth_service.generate_token(user)

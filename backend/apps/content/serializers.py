@@ -3,7 +3,7 @@ Serializers for Content Management module.
 """
 
 from rest_framework import serializers
-from .models import Category, Course, Module, Lesson, LearningObject
+from .models import Category, Course, Module, Lesson
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -70,6 +70,7 @@ class CourseListSerializer(serializers.ModelSerializer):
     category = serializers.StringRelatedField()
     instructor_name = serializers.SerializerMethodField()
     total_lessons = serializers.IntegerField(read_only=True)
+    topics = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -82,6 +83,7 @@ class CourseListSerializer(serializers.ModelSerializer):
             "duration",
             "level",
             "category",
+            "topics",
             "rating",
             "students_count",
             "total_lessons",
@@ -89,6 +91,10 @@ class CourseListSerializer(serializers.ModelSerializer):
 
     def get_instructor_name(self, obj):
         return obj.instructor.full_name
+
+    def get_topics(self, obj):
+        """Return list of topic names."""
+        return [topic.name for topic in obj.topics.filter(is_active=True)]
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):
@@ -98,6 +104,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
     modules = ModuleSerializer(many=True, read_only=True)
     instructor_name = serializers.SerializerMethodField()
     total_lessons = serializers.IntegerField(read_only=True)
+    topics = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -110,6 +117,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "duration",
             "level",
             "category",
+            "topics",
             "rating",
             "students_count",
             "is_published",
@@ -122,9 +130,22 @@ class CourseDetailSerializer(serializers.ModelSerializer):
     def get_instructor_name(self, obj):
         return obj.instructor.full_name
 
+    def get_topics(self, obj):
+        """Return detailed topic information."""
+        from apps.core.serializers import TopicSerializer
+
+        return TopicSerializer(obj.topics.filter(is_active=True), many=True).data
+
 
 class CourseCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating courses."""
+
+    topic_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        write_only=True,
+        required=False,
+        help_text="List of topic UUIDs to associate with the course",
+    )
 
     class Meta:
         model = Course
@@ -135,12 +156,38 @@ class CourseCreateSerializer(serializers.ModelSerializer):
             "duration",
             "level",
             "category",
+            "topic_ids",
             "is_published",
         ]
 
     def create(self, validated_data):
+        topic_ids = validated_data.pop("topic_ids", [])
         validated_data["instructor"] = self.context["request"].user
-        return super().create(validated_data)
+
+        course = super().create(validated_data)
+
+        # Associate topics using service layer
+        if topic_ids:
+            from apps.core.services import TopicService
+
+            topics = TopicService.get_topics_by_ids(topic_ids)
+            course.topics.set(topics)
+
+        return course
+
+    def update(self, instance, validated_data):
+        topic_ids = validated_data.pop("topic_ids", None)
+
+        course = super().update(instance, validated_data)
+
+        # Update topics if provided
+        if topic_ids is not None:
+            from apps.core.services import TopicService
+
+            topics = TopicService.get_topics_by_ids(topic_ids)
+            course.topics.set(topics)
+
+        return course
 
 
 class ModuleCreateSerializer(serializers.ModelSerializer):
@@ -157,19 +204,3 @@ class LessonCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = ["module", "title", "type", "duration", "order", "content", "is_free"]
-
-
-class LearningObjectSerializer(serializers.ModelSerializer):
-    """Serializer for LearningObject model."""
-
-    class Meta:
-        model = LearningObject
-        fields = [
-            "id",
-            "lesson",
-            "title",
-            "type",
-            "content",
-            "difficulty",
-            "estimated_time",
-        ]

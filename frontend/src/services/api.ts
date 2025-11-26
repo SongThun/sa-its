@@ -7,10 +7,11 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Backend API response types
 interface BackendUser {
-  id: number;
+  id: string;
   username: string;
   email: string;
   fullname: string;
+  role: 'student' | 'instructor' | 'admin';
   first_name?: string;
   last_name?: string;
   created_at: string;
@@ -48,68 +49,35 @@ function transformUser(backendUser: BackendUser): User {
   }
 
   return {
-    id: String(backendUser.id),
+    id: backendUser.id,
     email: backendUser.email,
-    firstName,
-    lastName,
+    first_name: firstName,
+    last_name: lastName,
+    full_name: backendUser.fullname,
+    role: backendUser.role,
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || backendUser.username}`,
     bio: '',
-    enrolledCourses: [],
-    completedLessons: [],
-    createdAt: backendUser.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+    enrolled_courses: [],
+    completed_lessons: [],
+    created_at: backendUser.created_at,
   };
 }
 
 // Auth API - Uses real backend
 export const authApi = {
-  login: async (email: string, password: string): Promise<User | null> => {
-    try {
-      const response = await apiClient.post<LoginResponse>('/auth/login/', {
-        email,
-        password,
-      });
-
-      // Save tokens
-      apiClient.saveTokens(response.tokens);
-
-      // Transform and save user
-      const user = transformUser(response.user);
-      localStorage.setItem('currentUser', JSON.stringify(user));
-
-      return user;
-    } catch (error) {
-      const apiError = error as ApiError;
-      console.error('Login error:', apiError.message);
-      throw new Error(apiError.message || 'Invalid email or password');
-    }
+  register: async (data: {
+    email: string;
+    password: string;
+    password_confirm: string;
+    username: string;
+    fullname?: string;
+    role?: 'student' | 'instructor' | 'admin';
+  }) => {
+    return apiClient.post<RegisterResponse>('/auth/register/', data);
   },
 
-  register: async (
-    email: string,
-    password: string,
-    firstName: string,
-    lastName: string
-  ): Promise<User | null> => {
-    try {
-      // Generate username from email
-      const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-      const fullname = `${firstName} ${lastName}`.trim();
-
-      await apiClient.post<RegisterResponse>('/auth/register/', {
-        email,
-        password,
-        password_confirm: password,
-        username,
-        fullname,
-      });
-
-      // After registration, login to get tokens
-      return await authApi.login(email, password);
-    } catch (error) {
-      const apiError = error as ApiError;
-      console.error('Register error:', apiError.message);
-      throw new Error(apiError.message || 'Registration failed');
-    }
+  login: async (data: { email: string; password: string }) => {
+    return apiClient.post<LoginResponse>('/auth/login/', data);
   },
 
   logout: async (): Promise<void> => {
@@ -311,5 +279,145 @@ export const progressApi = {
     if (courseIndex !== -1) {
       mockCourses[courseIndex].lastAccessed = new Date().toISOString().split('T')[0];
     }
+  },
+};
+
+// ============================================================================
+// INSTRUCTOR API - Real backend endpoints for course management
+// ============================================================================
+
+import type { Topic, Category, CourseFormData, ModuleFormData, LessonFormData, Module, Lesson } from '../types';
+
+export const topicsApi = {
+  getAll: async (search?: string): Promise<Topic[]> => {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    return apiClient.get<Topic[]>(`/core/topics/${query}`);
+  },
+
+  getById: async (id: string): Promise<Topic> => {
+    return apiClient.get<Topic>(`/core/topics/${id}/`);
+  },
+
+  create: async (data: { name: string; slug: string; description?: string }): Promise<Topic> => {
+    return apiClient.post<Topic>('/core/topics/create/', data);
+  },
+
+  update: async (id: string, data: Partial<{ name: string; slug: string; description: string }>): Promise<Topic> => {
+    return apiClient.put<Topic>(`/core/topics/${id}/update/`, data);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    return apiClient.delete(`/core/topics/${id}/delete/`);
+  },
+};
+
+export const categoriesApi = {
+  getAll: async (): Promise<Category[]> => {
+    return apiClient.get<Category[]>('/content/categories/');
+  },
+};
+
+export const instructorCoursesApi = {
+  getAll: async (filters?: {
+    category?: string;
+    level?: string;
+    search?: string;
+    topics?: string;
+  }): Promise<Course[]> => {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.level) params.append('level', filters.level);
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.topics) params.append('topics', filters.topics);
+
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get<Course[]>(`/content/courses/${query}`);
+  },
+
+  getById: async (id: string): Promise<Course> => {
+    return apiClient.get<Course>(`/content/courses/${id}/`);
+  },
+
+  create: async (data: CourseFormData): Promise<Course> => {
+    return apiClient.post<Course>('/content/courses/', data);
+  },
+
+  update: async (id: string, data: Partial<CourseFormData>): Promise<Course> => {
+    return apiClient.put<Course>(`/content/courses/${id}/`, data);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    return apiClient.delete(`/content/courses/${id}/`);
+  },
+
+  togglePublish: async (id: string, is_published: boolean): Promise<Course> => {
+    return apiClient.patch<Course>(`/content/courses/${id}/`, { is_published });
+  },
+};
+
+export const modulesApi = {
+  getByCourse: async (courseId: string): Promise<Module[]> => {
+    return apiClient.get<Module[]>(`/content/courses/${courseId}/modules/`);
+  },
+
+  getById: async (id: string): Promise<Module> => {
+    return apiClient.get<Module>(`/content/modules/${id}/`);
+  },
+
+  create: async (data: ModuleFormData): Promise<Module> => {
+    return apiClient.post<Module>('/content/modules/', data);
+  },
+
+  update: async (id: string, data: Partial<ModuleFormData>): Promise<Module> => {
+    return apiClient.put<Module>(`/content/modules/${id}/`, data);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    return apiClient.delete(`/content/modules/${id}/`);
+  },
+};
+
+export const lessonsApi = {
+  getByModule: async (moduleId: string): Promise<Lesson[]> => {
+    return apiClient.get<Lesson[]>(`/content/modules/${moduleId}/lessons/`);
+  },
+
+  getById: async (id: string): Promise<Lesson> => {
+    return apiClient.get<Lesson>(`/content/lessons/${id}/`);
+  },
+
+  create: async (data: LessonFormData): Promise<Lesson> => {
+    return apiClient.post<Lesson>('/content/lessons/', data);
+  },
+
+  update: async (id: string, data: Partial<LessonFormData>): Promise<Lesson> => {
+    return apiClient.put<Lesson>(`/content/lessons/${id}/`, data);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    return apiClient.delete(`/content/lessons/${id}/`);
+  },
+};
+
+export const uploadApi = {
+  uploadFile: async (
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<{ url: string }> => {
+    // Note: This is a placeholder. Backend file upload endpoint needs to be implemented
+    // For now, simulate upload
+    return new Promise((resolve) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        onProgress?.(progress);
+        if (progress >= 100) {
+          clearInterval(interval);
+          resolve({
+            url: `https://example.com/uploads/${file.name}`,
+          });
+        }
+      }, 100);
+    });
   },
 };

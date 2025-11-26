@@ -3,7 +3,8 @@ Admin configuration for Content Management module.
 """
 
 from django.contrib import admin
-from .models import Category, Course, Module, Lesson, LearningObject
+
+from .models import Category, Course, Lesson, Module
 
 
 @admin.register(Category)
@@ -50,13 +51,6 @@ class ModuleAdmin(admin.ModelAdmin):
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ["title", "module", "type", "duration", "order", "is_free"]
-    list_filter = ["type", "is_free", "module__course"]
-    search_fields = ["title"]
-
-
-@admin.register(LearningObject)
-class LearningObjectAdmin(admin.ModelAdmin):
-    list_display = ["title", "lesson", "type", "difficulty", "estimated_time"]
-    list_filter = ["type", "difficulty"]
+    list_display = ["title", "module", "type", "duration", "order"]
+    list_filter = ["type", "module__course"]
     search_fields = ["title"]

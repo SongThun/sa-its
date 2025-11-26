@@ -11,6 +11,7 @@ class AuthenticationService:
         username: str,
         password: str,
         fullname: str = "",
+        role: str = "student",
     ) -> User:
         if User.objects.email_exists(email):
             raise ValidationError({"email": "Cannot register with this email"})
@@ -20,6 +21,7 @@ class AuthenticationService:
             username=username,
             password=password,
             fullname=fullname,
+            role=role,
         )
 
         return user

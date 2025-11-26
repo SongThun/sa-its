@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "corsheaders",
     # Internal apps
+    "apps.core",
     "apps.authentication",
     "apps.content",
     "apps.learning_activities",

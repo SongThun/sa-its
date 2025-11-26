@@ -3,16 +3,13 @@ Content Management Models.
 Handles courses, modules, lessons, and learning objects.
 """
 
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class Category(models.Model):
-    """Course categories for organization."""
-
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-    icon = models.CharField(max_length=50, blank=True)  # Icon name or URL
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -25,8 +22,6 @@ class Category(models.Model):
 
 
 class Course(models.Model):
-    """Main course model."""
-
     LEVEL_CHOICES = [
         ("beginner", "Beginner"),
         ("intermediate", "Intermediate"),
@@ -37,11 +32,12 @@ class Course(models.Model):
     description = models.TextField()
     instructor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name="courses_taught",
     )
     thumbnail = models.URLField(blank=True)
-    duration = models.CharField(max_length=50)  # e.g., "10 hours"
+    duration = models.CharField(max_length=50)
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default="beginner")
     category = models.ForeignKey(
         Category,
@@ -88,8 +84,6 @@ class Course(models.Model):
 
 
 class Module(models.Model):
-    """Course module/section containing lessons."""
-
     course = models.ForeignKey(
         Course,
         on_delete=models.CASCADE,
@@ -115,8 +109,6 @@ class Module(models.Model):
 
 
 class Lesson(models.Model):
-    """Individual lesson within a module."""
-
     TYPE_CHOICES = [
         ("video", "Video"),
         ("text", "Text/Article"),
@@ -131,10 +123,9 @@ class Lesson(models.Model):
     )
     title = models.CharField(max_length=255)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="text")
-    duration = models.CharField(max_length=50)  # e.g., "15 min"
+    duration = models.CharField(max_length=50)
     order = models.PositiveIntegerField(default=0)
     content = models.JSONField(default=dict)  # Flexible content storage
-    is_free = models.BooleanField(default=False)  # Preview lessons
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -145,39 +136,3 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f"{self.module.title} - {self.title}"
-
-
-class LearningObject(models.Model):
-    """
-    Granular learning content linked to concepts.
-    Used for adaptive learning and recommendations.
-    """
-
-    TYPE_CHOICES = [
-        ("explanation", "Explanation"),
-        ("example", "Example"),
-        ("exercise", "Exercise"),
-        ("assessment", "Assessment"),
-    ]
-
-    lesson = models.ForeignKey(
-        Lesson,
-        on_delete=models.CASCADE,
-        related_name="learning_objects",
-        null=True,
-        blank=True,
-    )
-    title = models.CharField(max_length=255)
-    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    content = models.JSONField(default=dict)
-    difficulty = models.FloatField(default=0.5)  # 0.0 (easy) to 1.0 (hard)
-    estimated_time = models.PositiveIntegerField(default=5)  # minutes
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = "learning_objects"
-        ordering = ["lesson", "difficulty"]
-
-    def __str__(self):
-        return self.title
