@@ -1,8 +1,3 @@
-"""
-Content Management Models.
-Handles courses, modules, lessons, and learning objects.
-"""
-
 from django.conf import settings
 from django.db import models
 
@@ -112,7 +107,6 @@ class Lesson(models.Model):
     TYPE_CHOICES = [
         ("video", "Video"),
         ("text", "Text/Article"),
-        ("quiz", "Quiz"),
         ("interactive", "Interactive"),
     ]
 

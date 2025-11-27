@@ -28,8 +28,7 @@ class UserRegisterView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        auth_service = AuthenticationService()
-        user = auth_service.register(
+        user = AuthenticationService.register(
             email=serializer.validated_data["email"],
             username=serializer.validated_data["username"],
             password=serializer.validated_data["password"],
@@ -37,7 +36,7 @@ class UserRegisterView(GenericAPIView):
             role=serializer.validated_data.get("role", "student"),
         )
 
-        tokens = auth_service.generate_token(user)
+        tokens = AuthenticationService.generate_token(user)
 
         return Response(
             {
@@ -57,13 +56,12 @@ class LoginView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        auth_service = AuthenticationService()
-        user = auth_service.login(
+        user = AuthenticationService.login(
             email=serializer.validated_data["email"],
             password=serializer.validated_data["password"],
         )
 
-        tokens = auth_service.generate_token(user)
+        tokens = AuthenticationService.generate_token(user)
 
         return Response(
             {
@@ -87,8 +85,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 
-        profile_service = ProfileService()
-        user = profile_service.update_profile(
+        user = ProfileService.update_profile(
             user=instance,
             data=serializer.validated_data,
         )
@@ -112,8 +109,7 @@ class ResetPasswordView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        auth_service = AuthenticationService()
-        auth_service.reset_password(
+        AuthenticationService.reset_password(
             user=request.user,
             old_password=serializer.validated_data["old_password"],
             new_password=serializer.validated_data["new_password"],

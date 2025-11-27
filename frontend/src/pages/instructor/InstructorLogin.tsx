@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../services/api';
+import { apiClient } from '../../services/apiClient';
 
 interface LoginFormData {
   email: string;
@@ -42,23 +43,24 @@ const InstructorLogin: React.FC = () => {
       const response = await authApi.login(formData);
 
       // Check if user is an instructor
-      if (response.data.user.role !== 'instructor') {
+      if (response.user.role !== 'instructor') {
         setError('This login page is for instructors only. Please use the student login page.');
         setLoading(false);
         return;
       }
 
-      // Store tokens and user info
-      localStorage.setItem('access_token', response.data.tokens.access);
-      localStorage.setItem('refresh_token', response.data.tokens.refresh);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Store tokens and user info using apiClient methods
+      if (response.tokens) {
+        apiClient.saveTokens(response.tokens);
+        localStorage.setItem('currentUser', JSON.stringify(response.user));
+      }
 
       // Redirect to instructor dashboard
       navigate('/instructor/dashboard');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
+      const error = err as { message?: string };
       setError(
-        error.response?.data?.detail ||
+        error.message ||
           'Login failed. Please check your credentials.'
       );
     } finally {

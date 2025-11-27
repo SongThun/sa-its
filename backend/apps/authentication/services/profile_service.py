@@ -12,6 +12,7 @@ class ProfileService:
     EDITABLE_FIELDS = {"username", "fullname"}
     READ_ONLY_FIELDS = {"id", "email", "created_at", "updated_at"}
 
+    @staticmethod
     def update_profile(self, user: User, data: Dict[str, Any]) -> User:
         update_data = {
             key: value for key, value in data.items() if key in self.EDITABLE_FIELDS
@@ -24,10 +25,12 @@ class ProfileService:
 
         return user
 
+    @staticmethod
     def deactivate_user(self, user: User):
         user.is_active = False
         user.save()
 
+    @staticmethod
     def activate_user(self, user: User):
         """
         Activate a user account.

@@ -1,7 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
+import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -9,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
 import Lesson from './pages/Lesson';
+import InstructorLanding from './pages/instructor/InstructorLanding';
 import InstructorDashboard from './pages/instructor/InstructorDashboard';
 import CourseForm from './pages/instructor/CourseForm';
 import InstructorRegister from './pages/instructor/InstructorRegister';
@@ -23,7 +25,7 @@ function App() {
           <Navbar />
           <Box component="main" sx={{ flexGrow: 1 }}>
             <Routes>
-              <Route path="/" element={<Navigate to="/courses" replace />} />
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
@@ -33,6 +35,7 @@ function App() {
               <Route path="/course/:courseId/lesson/:lessonId" element={<Lesson />} />
 
               {/* Instructor Routes */}
+              <Route path="/instructor" element={<InstructorLanding />} />
               <Route path="/instructor/register" element={<InstructorRegister />} />
               <Route path="/instructor/login" element={<InstructorLogin />} />
               <Route path="/instructor/dashboard" element={<InstructorDashboard />} />

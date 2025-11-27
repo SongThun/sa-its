@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../services/api';
+import { apiClient } from '../../services/apiClient';
 
 interface RegisterFormData {
   username: string;
@@ -55,18 +56,19 @@ const InstructorRegister: React.FC = () => {
         role: 'instructor', // Set role as instructor
       });
 
-      // Store tokens and user info
-      localStorage.setItem('access_token', response.data.tokens.access);
-      localStorage.setItem('refresh_token', response.data.tokens.refresh);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Store tokens and user info using apiClient methods
+      if (response.tokens) {
+        apiClient.saveTokens(response.tokens);
+        localStorage.setItem('currentUser', JSON.stringify(response.user));
+      }
 
       // Redirect to instructor dashboard
       navigate('/instructor/dashboard');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string; email?: string[] } } };
+      const error = err as { message?: string; errors?: Record<string, string[]> };
       setError(
-        error.response?.data?.detail ||
-          error.response?.data?.email?.[0] ||
+        error.message ||
+          error.errors?.email?.[0] ||
           'Registration failed. Please try again.'
       );
     } finally {

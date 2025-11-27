@@ -10,7 +10,6 @@ class UserManager(BaseUserManager):
         return self.filter(email__iexact=email.lower().strip()).exists()
 
     def create_user(self, email, username, password=None, **extra_fields):
-        """Create and save a regular user with the given email and password."""
         if not email:
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
@@ -34,10 +33,6 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractUser):
-    """
-    Custom user model with role-based access control.
-    """
-
     ROLE_CHOICES = [
         ("student", "Student"),
         ("instructor", "Instructor"),
@@ -75,13 +70,10 @@ class User(AbstractUser):
         return self.fullname if self.fullname else self.username
 
     def is_student(self):
-        """Check if user has student role."""
         return self.role == "student"
 
     def is_instructor(self):
-        """Check if user has instructor role."""
         return self.role == "instructor"
 
-    def is_admin_user(self):
-        """Check if user has admin role."""
+    def is_admin(self):
         return self.role == "admin"
