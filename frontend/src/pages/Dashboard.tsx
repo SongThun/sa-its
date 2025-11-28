@@ -61,11 +61,11 @@ export default function Dashboard() {
       setCategories(['All', ...cats]);
 
       if (user) {
-        const ongoing = await enrollmentApi.getOngoingCourses(user.id);
+        const ongoing = await enrollmentApi.getOngoingCourses();
         setOngoingCourses(ongoing);
 
         const progressPromises = user.enrolledCourses.map((courseId) =>
-          enrollmentApi.getCourseProgress(user.id, courseId)
+          enrollmentApi.getCourseProgress(courseId)
         );
         const progressResults = await Promise.all(progressPromises);
         const progressObj: Record<string, EnrollmentProgress> = {};

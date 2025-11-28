@@ -1,9 +1,27 @@
 import type { User, Course, EnrollmentProgress } from '../types';
-import { mockUsers } from '../data/mockData';
+import { mockUsers, mockCourses } from '../data/mockData';
 import { apiClient, type ApiError } from './apiClient';
 
-// Simulate API delay for mock endpoints (still used by enrollment/progress APIs)
+// Simulate API delay for mock endpoints (still used by progress APIs)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Backend enrollment response types
+interface EnrollmentResponse {
+  id: string;
+  course_id: string;
+  course_title: string;
+  status: 'started' | 'in_progress' | 'completed';
+  progress_percent: string;
+  is_active: boolean;
+  enrolled_at: string;
+  completed_at: string | null;
+  last_accessed_at: string | null;
+}
+
+interface EnrollmentStatusResponse {
+  is_enrolled: boolean;
+  enrollment?: EnrollmentResponse;
+}
 
 // Backend API response types
 interface BackendUser {
@@ -167,72 +185,92 @@ export const courseApi = {
   },
 };
 
-// Enrollment API - Mock (to be replaced with real API later)
+// Enrollment API - Uses real backend (user identified via JWT token)
 export const enrollmentApi = {
-  enrollInCourse: async (userId: string, courseId: string): Promise<boolean> => {
-    await delay(400);
-    const userIndex = mockUsers.findIndex(u => u.id === userId);
-    if (userIndex !== -1 && !mockUsers[userIndex].enrolledCourses.includes(courseId)) {
-      mockUsers[userIndex].enrolledCourses.push(courseId);
-      localStorage.setItem('currentUser', JSON.stringify(mockUsers[userIndex]));
+  enrollInCourse: async (courseId: string): Promise<boolean> => {
+    try {
+      await apiClient.post<EnrollmentResponse>(`/learning/courses/${courseId}/enroll/`, {});
       return true;
+    } catch (error) {
+      console.error('Enroll error:', error);
+      return false;
     }
-    return false;
   },
 
-  unenrollFromCourse: async (userId: string, courseId: string): Promise<boolean> => {
-    await delay(400);
-    const userIndex = mockUsers.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-      mockUsers[userIndex].enrolledCourses = mockUsers[userIndex].enrolledCourses.filter(
-        id => id !== courseId
+  unenrollFromCourse: async (courseId: string): Promise<boolean> => {
+    try {
+      await apiClient.post(`/learning/courses/${courseId}/unenroll/`, {});
+      return true;
+    } catch (error) {
+      console.error('Unenroll error:', error);
+      return false;
+    }
+  },
+
+  isEnrolled: async (courseId: string): Promise<boolean> => {
+    try {
+      const response = await apiClient.get<EnrollmentStatusResponse>(
+        `/learning/courses/${courseId}/enrollment-status/`
       );
-      localStorage.setItem('currentUser', JSON.stringify(mockUsers[userIndex]));
-      return true;
+      return response.is_enrolled;
+    } catch {
+      return false;
     }
-    return false;
   },
 
-  getEnrolledCourses: async (userId: string): Promise<Course[]> => {
-    await delay(300);
-    const user = mockUsers.find(u => u.id === userId);
-    if (!user) return [];
-    return mockCourses.filter(c => user.enrolledCourses.includes(c.id));
-  },
-
-  getOngoingCourses: async (userId: string): Promise<Course[]> => {
-    await delay(300);
-    const user = mockUsers.find(u => u.id === userId);
-    if (!user) return [];
-    return mockCourses
-      .filter(c => user.enrolledCourses.includes(c.id) && c.lastAccessed)
-      .sort((a, b) => {
-        const dateA = a.lastAccessed ? new Date(a.lastAccessed).getTime() : 0;
-        const dateB = b.lastAccessed ? new Date(b.lastAccessed).getTime() : 0;
-        return dateB - dateA;
-      });
-  },
-
-  getCourseProgress: async (userId: string, courseId: string): Promise<EnrollmentProgress> => {
-    await delay(200);
-    const user = mockUsers.find(u => u.id === userId);
-    const course = mockCourses.find(c => c.id === courseId);
-
-    if (!user || !course) {
-      return { courseId, completedLessons: [], progress: 0 };
+  getMyEnrollments: async (): Promise<EnrollmentResponse[]> => {
+    try {
+      return await apiClient.get<EnrollmentResponse[]>('/learning/enrollments/');
+    } catch {
+      return [];
     }
+  },
 
-    const courseLessonIds = course.modules.flatMap(m => m.lessons.map(l => l.id));
-    const completedLessons = user.completedLessons.filter(id => courseLessonIds.includes(id));
-    const progress = courseLessonIds.length > 0
-      ? Math.round((completedLessons.length / courseLessonIds.length) * 100)
-      : 0;
+  getEnrolledCourses: async (): Promise<Course[]> => {
+    try {
+      const enrollments = await apiClient.get<EnrollmentResponse[]>('/learning/enrollments/');
+      const courseIds = enrollments.map(e => e.course_id);
+      const allCourses = await apiClient.get<Course[]>('/content/courses/');
+      return allCourses.filter(c => courseIds.includes(c.id));
+    } catch {
+      return [];
+    }
+  },
 
-    return {
-      courseId,
-      completedLessons,
-      progress,
-    };
+  getOngoingCourses: async (): Promise<Course[]> => {
+    try {
+      const enrollments = await apiClient.get<EnrollmentResponse[]>('/learning/enrollments/');
+      const ongoingEnrollments = enrollments
+        .filter(e => e.status !== 'completed' && e.last_accessed_at)
+        .sort((a, b) => {
+          const dateA = a.last_accessed_at ? new Date(a.last_accessed_at).getTime() : 0;
+          const dateB = b.last_accessed_at ? new Date(b.last_accessed_at).getTime() : 0;
+          return dateB - dateA;
+        });
+      const courseIds = ongoingEnrollments.map(e => e.course_id);
+      const allCourses = await apiClient.get<Course[]>('/content/courses/');
+      return allCourses.filter(c => courseIds.includes(c.id));
+    } catch {
+      return [];
+    }
+  },
+
+  getCourseProgress: async (courseId: string): Promise<EnrollmentProgress> => {
+    try {
+      const response = await apiClient.get<EnrollmentStatusResponse>(
+        `/learning/courses/${courseId}/enrollment-status/`
+      );
+      if (response.is_enrolled && response.enrollment) {
+        return {
+          course_id: courseId,
+          completed_lessons: [],
+          progress: parseFloat(response.enrollment.progress_percent),
+        };
+      }
+      return { course_id: courseId, completed_lessons: [], progress: 0 };
+    } catch {
+      return { course_id: courseId, completed_lessons: [], progress: 0 };
+    }
   },
 };
 

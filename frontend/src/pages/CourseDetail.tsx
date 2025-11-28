@@ -88,7 +88,7 @@ export default function CourseDetail() {
   const loadProgress = async () => {
     if (!user || !courseId) return;
     try {
-      const progressData = await enrollmentApi.getCourseProgress(user.id, courseId);
+      const progressData = await enrollmentApi.getCourseProgress(courseId);
       setProgress(progressData);
     } catch (error) {
       console.error('Failed to load progress:', error);
@@ -100,10 +100,10 @@ export default function CourseDetail() {
       navigate('/login');
       return;
     }
-    if (!user || !courseId) return;
+    if (!courseId) return;
     setIsEnrolling(true);
     try {
-      await enrollmentApi.enrollInCourse(user.id, courseId);
+      await enrollmentApi.enrollInCourse(courseId);
       refreshUser();
     } catch (error) {
       console.error('Failed to enroll:', error);
@@ -113,10 +113,10 @@ export default function CourseDetail() {
   };
 
   const handleUnenroll = async () => {
-    if (!user || !courseId) return;
+    if (!isAuthenticated || !courseId) return;
     setIsEnrolling(true);
     try {
-      await enrollmentApi.unenrollFromCourse(user.id, courseId);
+      await enrollmentApi.unenrollFromCourse(courseId);
       refreshUser();
       setProgress(null);
     } catch (error) {

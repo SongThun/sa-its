@@ -13,6 +13,7 @@ from apps.content.serializers import (
 )
 from apps.content.services import ContentFacade
 from apps.content.permissions import IsInstructor, IsOwner
+from apps.learning_activities.services import EnrollmentService
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -36,7 +37,7 @@ class CoursePublicViewSet(viewsets.ReadOnlyModelViewSet):
         course = self.get_object()
         user = request.user
 
-        if user.is_authenticated and ContentFacade.check_enrollment(user, course):
+        if user.is_authenticated and EnrollmentService.is_enrolled(user, course):
             serializer = CourseDetailSerializer(course)
         else:
             serializer = CourseDetailLockedSerializer(course)

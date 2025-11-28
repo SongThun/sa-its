@@ -50,7 +50,6 @@ FIXTURE_ORDER = [
     "topics",
     "courses",
     "enrollments",
-    "progress",
 ]
 
 
@@ -253,7 +252,7 @@ def handle_courses(data_list):
 def handle_enrollments(data_list):
     """
     Handler for enrollments table.
-    Links users to courses with enrollment status.
+    Links students to courses with enrollment status.
     """
     from apps.authentication.models import User
     from apps.content.models import Course
@@ -263,14 +262,14 @@ def handle_enrollments(data_list):
     skipped_count = 0
 
     for item in data_list:
-        user_email = item.get("user_email")
+        student_email = item.get("student_email")
         course_title = item.get("course_title")
 
-        # Get user by email
+        # Get student by email
         try:
-            user = User.objects.get(email=user_email)
+            student = User.objects.get(email=student_email)
         except User.DoesNotExist:
-            print(f"  ! User not found: {user_email}, skipping enrollment")
+            print(f"  ! Student not found: {student_email}, skipping enrollment")
             skipped_count += 1
             continue
 
@@ -283,113 +282,23 @@ def handle_enrollments(data_list):
             continue
 
         # Skip if enrollment already exists
-        if Enrollment.objects.filter(user=user, course=course).exists():
-            print(f"  - Skipping existing enrollment: {user_email} -> {course_title}")
+        if Enrollment.objects.filter(student=student, course=course).exists():
+            print(
+                f"  - Skipping existing enrollment: {student_email} -> {course_title}"
+            )
             skipped_count += 1
             continue
 
         # Create enrollment
         Enrollment.objects.create(
-            user=user,
+            student=student,
             course=course,
-            status=item.get("status", "active"),
+            status=item.get("status", Enrollment.Status.STARTED),
+            progress_percent=item.get("progress_percent", 0),
+            is_active=item.get("is_active", True),
         )
-        print(f"  + Created enrollment: {user_email} -> {course_title}")
+        print(f"  + Created enrollment: {student_email} -> {course_title}")
         created_count += 1
-
-    return created_count, skipped_count
-
-
-@register_handler("progress")
-def handle_progress(data_list):
-    """
-    Handler for progress table.
-    Creates lesson progress and course progress records.
-    """
-    from apps.authentication.models import User
-    from apps.content.models import Course, Lesson
-    from apps.learning_activities.models import LessonProgress, CourseProgress
-
-    created_count = 0
-    skipped_count = 0
-
-    for item in data_list:
-        user_email = item.get("user_email")
-        course_title = item.get("course_title")
-        lessons_completed = item.get("lessons_completed", [])
-        progress_percentage = item.get("progress_percentage", 0.0)
-
-        # Get user by email
-        try:
-            user = User.objects.get(email=user_email)
-        except User.DoesNotExist:
-            print(f"  ! User not found: {user_email}, skipping progress")
-            skipped_count += 1
-            continue
-
-        # Get course by title
-        try:
-            course = Course.objects.get(title=course_title)
-        except Course.DoesNotExist:
-            print(f"  ! Course not found: {course_title}, skipping progress")
-            skipped_count += 1
-            continue
-
-        # Get all lessons in the course
-        all_lessons = Lesson.objects.filter(module__course=course)
-        total_lessons = all_lessons.count()
-
-        # Create or update course progress
-        course_progress, cp_created = CourseProgress.objects.get_or_create(
-            user=user,
-            course=course,
-            defaults={
-                "progress_percentage": progress_percentage,
-                "completed_lessons": len(lessons_completed),
-                "total_lessons": total_lessons,
-            },
-        )
-
-        if cp_created:
-            print(
-                f"  + Created course progress: {user_email} -> {course_title} ({progress_percentage}%)"
-            )
-            created_count += 1
-        else:
-            print(f"  - Course progress exists: {user_email} -> {course_title}")
-            skipped_count += 1
-
-        # Create lesson progress for completed lessons
-        for lesson_title in lessons_completed:
-            try:
-                lesson = all_lessons.get(title=lesson_title)
-            except Lesson.DoesNotExist:
-                print(f"    ! Lesson not found: {lesson_title}")
-                continue
-
-            lesson_progress, lp_created = LessonProgress.objects.get_or_create(
-                user=user,
-                lesson=lesson,
-                defaults={
-                    "is_completed": True,
-                    "time_spent": 600,  # Default 10 minutes
-                },
-            )
-
-            if lp_created:
-                print(f"    + Completed lesson: {lesson_title}")
-            else:
-                print(f"    - Lesson progress exists: {lesson_title}")
-
-        # Update last accessed lesson
-        if lessons_completed:
-            last_lesson_title = lessons_completed[-1]
-            try:
-                last_lesson = all_lessons.get(title=last_lesson_title)
-                course_progress.last_accessed_lesson = last_lesson
-                course_progress.save()
-            except Lesson.DoesNotExist:
-                pass
 
     return created_count, skipped_count
 

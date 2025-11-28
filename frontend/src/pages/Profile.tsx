@@ -66,7 +66,7 @@ export default function Profile() {
     if (!user) return;
     setIsLoading(true);
     try {
-      const courses = await enrollmentApi.getEnrolledCourses(user.id);
+      const courses = await enrollmentApi.getEnrolledCourses();
       setEnrolledCourses(courses);
     } catch (error) {
       console.error('Failed to load enrolled courses:', error);

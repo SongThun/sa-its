@@ -20,6 +20,32 @@ class ContentFacade:
         return Course.objects.filter(is_published=True)
 
     @staticmethod
+    def get_published_course_by_id(course_id) -> Course | None:
+        """Get a published course by ID."""
+        try:
+            return Course.objects.get(id=course_id, is_published=True)
+        except Course.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_course_by_id(course_id) -> Course | None:
+        """Get a course by ID (published or not)."""
+        try:
+            return Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return None
+
+    @staticmethod
+    def course_exists(course_id) -> bool:
+        """Check if a course exists."""
+        return Course.objects.filter(id=course_id).exists()
+
+    @staticmethod
+    def published_course_exists(course_id) -> bool:
+        """Check if a published course exists."""
+        return Course.objects.filter(id=course_id, is_published=True).exists()
+
+    @staticmethod
     def get_courses_for_instructor(instructor) -> QuerySet:
         return Course.objects.filter(instructor=instructor)
 
@@ -132,9 +158,3 @@ class ContentFacade:
         topic_ids = resolved_data.pop("topic_ids", None)
 
         return lesson, resolved_data, topic_ids
-
-    @staticmethod
-    def check_enrollment(user, course: Course) -> bool:
-        """Check if user is enrolled in course."""
-        # TODO: Implement enrollment check when Enrollment model is ready
-        return False

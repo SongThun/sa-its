@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     # Internal apps
     "apps.authentication",
     "apps.content",
+    "apps.learning_activities",
 ]
 
 MIDDLEWARE = [
