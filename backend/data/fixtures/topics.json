@@ -1,0 +1,55 @@
+{
+  "table": "topics",
+  "data": [
+    {
+      "name": "Python",
+      "slug": "python",
+      "description": "Python programming language"
+    },
+    {
+      "name": "JavaScript",
+      "slug": "javascript",
+      "description": "JavaScript programming language"
+    },
+    {
+      "name": "React",
+      "slug": "react",
+      "description": "React JavaScript library for building UIs"
+    },
+    {
+      "name": "Machine Learning",
+      "slug": "machine-learning",
+      "description": "Machine learning algorithms and techniques"
+    },
+    {
+      "name": "Data Analysis",
+      "slug": "data-analysis",
+      "description": "Data analysis and visualization"
+    },
+    {
+      "name": "SQL",
+      "slug": "sql",
+      "description": "SQL database querying language"
+    },
+    {
+      "name": "HTML/CSS",
+      "slug": "html-css",
+      "description": "Web markup and styling"
+    },
+    {
+      "name": "Algorithms",
+      "slug": "algorithms",
+      "description": "Computer science algorithms"
+    },
+    {
+      "name": "API Development",
+      "slug": "api-development",
+      "description": "Building and consuming APIs"
+    },
+    {
+      "name": "TypeScript",
+      "slug": "typescript",
+      "description": "TypeScript programming language"
+    }
+  ]
+}

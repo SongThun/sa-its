@@ -141,7 +141,7 @@ export default function CourseDetail() {
   };
 
   const getTotalLessons = () => {
-    return course?.modules.reduce((acc, module) => acc + module.lessons.length, 0) || 0;
+    return course?.modules?.reduce((acc, module) => acc + (module.lessons?.length || 0), 0) || 0;
   };
 
   const getLessonIcon = (type: string) => {
@@ -196,12 +196,12 @@ export default function CourseDetail() {
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                 <Avatar
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor}`}
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor_name}`}
                   sx={{ width: 48, height: 48 }}
                 />
                 <Box>
                   <Typography variant="caption" sx={{ opacity: 0.7 }}>Instructor</Typography>
-                  <Typography variant="body1" fontWeight={500}>{course.instructor}</Typography>
+                  <Typography variant="body1" fontWeight={500}>{course.instructor_name}</Typography>
                 </Box>
               </Box>
 
@@ -213,17 +213,17 @@ export default function CourseDetail() {
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <PeopleIcon />
-                  <Typography variant="body1" fontWeight={500}>{course.studentsCount.toLocaleString()}</Typography>
+                  <Typography variant="body1" fontWeight={500}>{course.students_count.toLocaleString()}</Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>Students</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <TimeIcon />
-                  <Typography variant="body1" fontWeight={500}>{course.duration}</Typography>
+                  <Typography variant="body1" fontWeight={500}>{Math.floor(course.est_duration / 60)}h {course.est_duration % 60}m</Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>Duration</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <LevelIcon />
-                  <Typography variant="body1" fontWeight={500}>{course.level}</Typography>
+                  <Typography variant="body1" fontWeight={500} sx={{ textTransform: 'capitalize' }}>{course.difficulty_level}</Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>Level</Typography>
                 </Box>
               </Stack>
@@ -234,7 +234,7 @@ export default function CourseDetail() {
                 <CardMedia
                   component="img"
                   height="180"
-                  image={course.thumbnail}
+                  image={course.cover_image || 'https://via.placeholder.com/400x180?text=No+Image'}
                   alt={course.title}
                 />
                 <CardContent>
@@ -281,12 +281,6 @@ export default function CourseDetail() {
                     </>
                   ) : (
                     <>
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="h4" fontWeight={700} color="primary">Free</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Full access to all content
-                        </Typography>
-                      </Box>
                       <Button
                         onClick={handleEnroll}
                         variant="contained"
@@ -331,13 +325,13 @@ export default function CourseDetail() {
             Course Content
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {course.modules.length} modules • {getTotalLessons()} lessons • {course.duration}
+            {course.modules?.length || 0} modules • {getTotalLessons()} lessons • {Math.floor(course.est_duration / 60)}h {course.est_duration % 60}m
           </Typography>
         </Box>
 
         <Paper variant="outlined">
           <List disablePadding>
-            {course.modules.map((module, moduleIndex) => (
+            {(course.modules || []).map((module, moduleIndex) => (
               <Box key={module.id}>
                 {moduleIndex > 0 && <Divider />}
                 <ListItemButton onClick={() => toggleModule(module.id)} sx={{ py: 2 }}>
@@ -350,13 +344,13 @@ export default function CourseDetail() {
                     primary={<Typography fontWeight={600}>{module.title}</Typography>}
                     secondary={module.description}
                   />
-                  <Chip label={`${module.lessons.length} lessons`} size="small" sx={{ mr: 2 }} />
+                  <Chip label={`${module.lessons?.length || 0} lessons`} size="small" sx={{ mr: 2 }} />
                   {expandedModules.has(module.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 </ListItemButton>
 
                 <Collapse in={expandedModules.has(module.id)} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding sx={{ bgcolor: 'background.default' }}>
-                    {module.lessons.map((lesson, lessonIndex) => (
+                    {(module.lessons || []).map((lesson, lessonIndex) => (
                       <ListItem
                         key={lesson.id}
                         disablePadding
@@ -380,9 +374,12 @@ export default function CourseDetail() {
                             <ListItemText
                               primary={lesson.title}
                               secondary={
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  {getLessonIcon(lesson.type)}
-                                  <Typography variant="caption">{lesson.duration}</Typography>
+                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                                  {getLessonIcon(lesson.content_type)}
+                                  <Typography variant="caption">{lesson.estimated_duration} min</Typography>
+                                  {lesson.topics?.map((topic) => (
+                                    <Chip key={topic.id} label={topic.name} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                  ))}
                                 </Stack>
                               }
                             />
@@ -397,8 +394,8 @@ export default function CourseDetail() {
                               primary={lesson.title}
                               secondary={
                                 <Stack direction="row" spacing={1} alignItems="center">
-                                  {getLessonIcon(lesson.type)}
-                                  <Typography variant="caption">{lesson.duration}</Typography>
+                                  {getLessonIcon(lesson.content_type)}
+                                  <Typography variant="caption">{lesson.estimated_duration} min</Typography>
                                 </Stack>
                               }
                             />

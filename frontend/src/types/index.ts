@@ -30,18 +30,18 @@ export interface Course {
   title: string;
   description: string;
   instructor_name: string;
-  thumbnail: string;
-  duration: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  category: string;
-  topics: Topic[] | string[]; // Full objects or just names
+  cover_image: string | null;
+  est_duration: number; // in minutes
+  difficulty_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  category: string; // category name
   rating: number;
   students_count: number;
-  is_published: boolean;
+  is_published?: boolean;
   total_lessons: number;
   modules?: Module[];
+  prerequisites?: Course[];
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 // Module types
@@ -50,105 +50,61 @@ export interface Module {
   title: string;
   description: string;
   order: number;
-  total_lessons: number;
-  lessons?: Lesson[];
-  items?: ModuleItem[];
-  created_at: string;
-  updated_at: string;
-}
-
-// Module Item (polymorphic content)
-export interface ModuleItem {
-  id: string; // UUID
-  module_id: string;
-  order: number;
-  item_type: 'lesson' | 'quiz' | 'assignment';
-  content: Lesson | Quiz | Record<string, unknown>;
-  created_at: string;
+  estimated_duration: number; // in minutes
+  total_lessons?: number; // only in unlocked view
+  lessons?: Lesson[]; // only in unlocked view
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Lesson types
 export interface Lesson {
   id: string; // UUID
   title: string;
-  type: 'video' | 'text' | 'quiz' | 'interactive';
-  duration: string;
+  content_type: 'video' | 'text' | 'interactive' | 'document' | 'quiz';
+  estimated_duration: number; // in minutes
   order: number;
-  content: LessonContent;
-  is_free: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface LessonContent {
-  markdown?: string;
-  video_url?: string;
-  attachments?: FileAttachment[];
-  [key: string]: unknown; // Flexible JSON content
-}
-
-export interface FileAttachment {
-  id: string;
-  name: string;
-  url: string;
-  type: string;
-  size: number;
-  uploaded_at: string;
-}
-
-// Quiz types
-export interface Quiz {
-  id: string;
-  title: string;
-  description?: string;
-  duration_minutes?: number;
-  passing_score?: number;
-  questions?: QuizQuestion[];
-}
-
-export interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correct_answer: number;
+  content?: string; // simple text/markdown content
+  topics?: Topic[]; // topics for this lesson (only in unlocked view)
+  is_published?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Category types
 export interface Category {
-  id: string; // UUID
+  id: number; // auto-increment integer
   name: string;
   description: string;
-  icon?: string;
-  courses_count?: number;
 }
 
 // Form data types
 export interface CourseFormData {
   title: string;
   description: string;
-  thumbnail: string;
-  duration: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  category: string; // UUID
-  topic_ids: string[]; // UUIDs
-  is_published: boolean;
+  cover_image?: string;
+  est_duration: number;
+  difficulty_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  category_id?: number;
+  topic_ids?: string[];
+  is_published?: boolean;
 }
 
 export interface ModuleFormData {
-  course: string; // UUID
+  course_id: string; // UUID
   title: string;
   description: string;
   order: number;
+  estimated_duration: number;
 }
 
 export interface LessonFormData {
-  module: string; // UUID
+  module_id: string; // UUID
   title: string;
-  type: 'video' | 'text' | 'quiz' | 'interactive';
-  duration: string;
+  content_type: 'video' | 'text' | 'interactive' | 'document' | 'quiz';
+  estimated_duration: number;
   order: number;
-  content: LessonContent;
-  is_free: boolean;
+  content?: string;
 }
 
 // Progress types

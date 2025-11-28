@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -11,16 +11,13 @@ import {
   CardActions,
   Button,
   Chip,
-  IconButton,
   CircularProgress,
   Alert,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
   People as PeopleIcon,
   Star as StarIcon,
   School as SchoolIcon,
@@ -29,53 +26,54 @@ import { instructorCoursesApi } from '../../services/api';
 import type { Course } from '../../types';
 
 export default function InstructorDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadCourses();
-  }, []);
+  }, [location.key]); // Reload when navigation happens
 
   const loadCourses = async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await instructorCoursesApi.getAll();
+      console.log('Loaded courses:', data);
+      console.log('First course ID:', data[0]?.id);
+      console.log('First course:', JSON.stringify(data[0], null, 2));
       setCourses(data);
     } catch (err) {
-      setError('Failed to load courses. Please try again.');
+      const errorMessage = (err as Error).message || 'Failed to load courses. Please try again.';
+      setError(errorMessage);
       console.error('Error loading courses:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteCourse = async (courseId: string) => {
-    if (!window.confirm('Are you sure you want to delete this course?')) {
-      return;
-    }
+  const handleTogglePublish = async (e: React.ChangeEvent<HTMLInputElement>, courseId: string) => {
+    e.stopPropagation(); // Prevent card click when toggling
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return;
 
-    try {
-      await instructorCoursesApi.delete(courseId);
-      setCourses(courses.filter(c => c.id !== courseId));
-    } catch (err) {
-      alert('Failed to delete course');
-      console.error('Error deleting course:', err);
-    }
-  };
-
-  const handleTogglePublish = async (course: Course) => {
     try {
       const updated = await instructorCoursesApi.togglePublish(
-        course.id,
+        courseId,
         !course.is_published
       );
-      setCourses(courses.map(c => c.id === course.id ? updated : c));
+      setCourses(courses.map(c => c.id === courseId ? updated : c));
     } catch (err) {
       alert('Failed to update course');
       console.error('Error toggling publish:', err);
     }
+  };
+
+  const handleCardClick = (courseId: string) => {
+    console.log('Navigating to edit course with ID:', courseId);
+    navigate(`/instructor/courses/${courseId}/edit`);
   };
 
   const stats = {
@@ -83,7 +81,7 @@ export default function InstructorDashboard() {
     publishedCourses: courses.filter(c => c.is_published).length,
     totalStudents: courses.reduce((sum, c) => sum + c.students_count, 0),
     avgRating: courses.length > 0
-      ? (courses.reduce((sum, c) => sum + c.rating, 0) / courses.length).toFixed(1)
+      ? (courses.reduce((sum, c) => sum + Number(c.rating), 0) / courses.length).toFixed(1)
       : '0.0',
   };
 
@@ -121,66 +119,48 @@ export default function InstructorDashboard() {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <SchoolIcon color="primary" sx={{ mr: 1 }} />
-                <Typography color="textSecondary" variant="body2">
-                  Total Courses
-                </Typography>
-              </Box>
-              <Typography variant="h4">{stats.totalCourses}</Typography>
-              <Typography variant="body2" color="textSecondary">
-                {stats.publishedCourses} published
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <PeopleIcon color="primary" sx={{ mr: 1 }} />
-                <Typography color="textSecondary" variant="body2">
-                  Total Students
-                </Typography>
-              </Box>
-              <Typography variant="h4">{stats.totalStudents}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <StarIcon color="primary" sx={{ mr: 1 }} />
-                <Typography color="textSecondary" variant="body2">
-                  Average Rating
-                </Typography>
-              </Box>
-              <Typography variant="h4">{stats.avgRating}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <SchoolIcon color="primary" sx={{ mr: 1 }} />
-                <Typography color="textSecondary" variant="body2">
-                  Total Lessons
-                </Typography>
-              </Box>
-              <Typography variant="h4">
-                {courses.reduce((sum, c) => sum + c.total_lessons, 0)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {[
+          {
+            icon: <SchoolIcon color="primary" sx={{ mr: 1 }} />,
+            label: 'Total Courses',
+            value: stats.totalCourses,
+            subtext: `${stats.publishedCourses} published`,
+          },
+          {
+            icon: <PeopleIcon color="primary" sx={{ mr: 1 }} />,
+            label: 'Total Students',
+            value: stats.totalStudents,
+          },
+          {
+            icon: <StarIcon color="primary" sx={{ mr: 1 }} />,
+            label: 'Average Rating',
+            value: stats.avgRating,
+          },
+          {
+            icon: <SchoolIcon color="primary" sx={{ mr: 1 }} />,
+            label: 'Total Lessons',
+            value: courses.reduce((sum, c) => sum + c.total_lessons, 0),
+          },
+        ].map((stat, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  {stat.icon}
+                  <Typography color="textSecondary" variant="body2">
+                    {stat.label}
+                  </Typography>
+                </Box>
+                <Typography variant="h4">{stat.value}</Typography>
+                {stat.subtext && (
+                  <Typography variant="body2" color="textSecondary">
+                    {stat.subtext}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
       {/* Course List */}
@@ -212,11 +192,22 @@ export default function InstructorDashboard() {
         <Grid container spacing={3}>
           {courses.map((course) => (
             <Grid item xs={12} sm={6} md={4} key={course.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    boxShadow: 4,
+                  },
+                }}
+                onClick={() => handleCardClick(course.id)}
+              >
                 <CardMedia
                   component="img"
                   height="200"
-                  image={course.thumbnail || 'https://via.placeholder.com/400x200?text=No+Image'}
+                  image={course.cover_image || 'https://via.placeholder.com/400x200?text=No+Image'}
                   alt={course.title}
                 />
                 <CardContent sx={{ flexGrow: 1 }}>
@@ -227,7 +218,7 @@ export default function InstructorDashboard() {
                       size="small"
                     />
                     <Chip
-                      label={course.level}
+                      label={course.difficulty_level}
                       size="small"
                       sx={{ ml: 1 }}
                     />
@@ -255,7 +246,7 @@ export default function InstructorDashboard() {
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <Typography variant="body2">
                       <StarIcon sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
-                      {course.rating.toFixed(1)}
+                      {Number(course.rating).toFixed(1)}
                     </Typography>
                     <Typography variant="body2">
                       <PeopleIcon sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
@@ -265,45 +256,21 @@ export default function InstructorDashboard() {
                       {course.total_lessons} lessons
                     </Typography>
                   </Box>
-
-                  {Array.isArray(course.topics) && course.topics.length > 0 && (
-                    <Box sx={{ mt: 1 }}>
-                      {course.topics.map((topic, index) => (
-                        <Chip
-                          key={index}
-                          label={typeof topic === 'string' ? topic : topic.name}
-                          size="small"
-                          variant="outlined"
-                          sx={{ mr: 0.5, mt: 0.5 }}
-                        />
-                      ))}
-                    </Box>
-                  )}
                 </CardContent>
 
-                <CardActions>
-                  <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    component={Link}
-                    to={`/instructor/courses/${course.id}/edit`}
-                  >
-                    Edit
-                  </Button>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleTogglePublish(course)}
-                    title={course.is_published ? 'Unpublish' : 'Publish'}
-                  >
-                    {course.is_published ? <VisibilityIcon /> : <VisibilityOffIcon />}
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleDeleteCourse(course.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={course.is_published}
+                        onChange={(e) => handleTogglePublish(e, course.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    }
+                    label={course.is_published ? 'Published' : 'Draft'}
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{ minWidth: 130 }}
+                  />
                 </CardActions>
               </Card>
             </Grid>

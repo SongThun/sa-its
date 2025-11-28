@@ -52,10 +52,8 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "corsheaders",
     # Internal apps
-    "apps.core",
     "apps.authentication",
     "apps.content",
-    "apps.learning_activities",
 ]
 
 MIDDLEWARE = [
@@ -189,10 +187,18 @@ SIMPLE_JWT = {
 # CORS settings
 # https://github.com/adamchainz/django-cors-headers
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:3000",
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Default course cover image
+DEFAULT_COURSE_COVER_IMAGE = os.getenv(
+    "DEFAULT_COURSE_COVER_IMAGE",
+    "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800&h=450&fit=crop",
+)

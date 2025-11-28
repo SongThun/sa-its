@@ -88,7 +88,7 @@ export default function Navbar() {
               <>
                 <Button
                   component={RouterLink}
-                  to="/dashboard"
+                  to={user?.role === 'instructor' ? '/instructor' : '/dashboard'}
                   color="inherit"
                   startIcon={<DashboardIcon />}
                   sx={{ fontWeight: 500 }}

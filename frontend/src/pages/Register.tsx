@@ -272,6 +272,15 @@ export default function Register() {
                 Sign in
               </Link>
             </Typography>
+
+            <Divider sx={{ my: 3 }} />
+
+            <Typography variant="body2" align="center" color="text.secondary">
+              Want to teach on our platform?{' '}
+              <Link component={RouterLink} to="/instructor/register" underline="hover" fontWeight={500}>
+                Register as Instructor
+              </Link>
+            </Typography>
           </Paper>
         </Container>
       </Box>

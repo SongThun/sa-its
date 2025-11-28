@@ -1,8 +1,8 @@
 import type { User, Course, EnrollmentProgress } from '../types';
-import { mockUsers, mockCourses } from '../data/mockData';
+import { mockUsers } from '../data/mockData';
 import { apiClient, type ApiError } from './apiClient';
 
-// Simulate API delay for mock endpoints
+// Simulate API delay for mock endpoints (still used by enrollment/progress APIs)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Backend API response types
@@ -139,37 +139,31 @@ export const authApi = {
   },
 };
 
-// Course API - Mock (to be replaced with real API later)
+// Course API - Uses real backend
 export const courseApi = {
   getAllCourses: async (): Promise<Course[]> => {
-    await delay(300);
-    return mockCourses;
+    return apiClient.get<Course[]>('/content/courses/');
   },
 
   getCourseById: async (id: string): Promise<Course | null> => {
-    await delay(200);
-    return mockCourses.find(c => c.id === id) || null;
+    try {
+      return await apiClient.get<Course>(`/content/courses/${id}/`);
+    } catch {
+      return null;
+    }
   },
 
   searchCourses: async (query: string): Promise<Course[]> => {
-    await delay(300);
-    const lowercaseQuery = query.toLowerCase();
-    return mockCourses.filter(
-      c =>
-        c.title.toLowerCase().includes(lowercaseQuery) ||
-        c.description.toLowerCase().includes(lowercaseQuery) ||
-        c.category.toLowerCase().includes(lowercaseQuery)
-    );
+    return apiClient.get<Course[]>(`/content/courses/?search=${encodeURIComponent(query)}`);
   },
 
   getCoursesByCategory: async (category: string): Promise<Course[]> => {
-    await delay(200);
-    return mockCourses.filter(c => c.category === category);
+    return apiClient.get<Course[]>(`/content/courses/?category=${encodeURIComponent(category)}`);
   },
 
   getCategories: async (): Promise<string[]> => {
-    await delay(100);
-    return [...new Set(mockCourses.map(c => c.category))];
+    const categories = await apiClient.get<Array<{ id: number; name: string }>>('/content/categories/');
+    return categories.map(c => c.name);
   },
 };
 
@@ -286,7 +280,7 @@ export const progressApi = {
 // INSTRUCTOR API - Real backend endpoints for course management
 // ============================================================================
 
-import type { Topic, Category, CourseFormData, ModuleFormData, LessonFormData, Module, Lesson } from '../types';
+import type { Topic, Category, ModuleFormData, LessonFormData, Module, Lesson } from '../types';
 
 export const topicsApi = {
   getAll: async (search?: string): Promise<Topic[]> => {
@@ -331,27 +325,28 @@ export const instructorCoursesApi = {
     if (filters?.topics) params.append('topics', filters.topics);
 
     const query = params.toString() ? `?${params.toString()}` : '';
-    return apiClient.get<Course[]>(`/content/courses/${query}`);
+    return apiClient.get<Course[]>(`/content/instructor/courses/${query}`);
   },
 
   getById: async (id: string): Promise<Course> => {
-    return apiClient.get<Course>(`/content/courses/${id}/`);
+    return apiClient.get<Course>(`/content/instructor/courses/${id}/`);
   },
 
-  create: async (data: CourseFormData): Promise<Course> => {
-    return apiClient.post<Course>('/content/courses/', data);
+  create: async (data: Record<string, unknown>): Promise<Course> => {
+    return apiClient.post<Course>('/content/instructor/courses/', data);
   },
 
-  update: async (id: string, data: Partial<CourseFormData>): Promise<Course> => {
-    return apiClient.put<Course>(`/content/courses/${id}/`, data);
+  update: async (id: string, data: Record<string, unknown>): Promise<Course> => {
+    return apiClient.patch<Course>(`/content/instructor/courses/${id}/`, data);
   },
 
   delete: async (id: string): Promise<void> => {
-    return apiClient.delete(`/content/courses/${id}/`);
+    return apiClient.delete(`/content/instructor/courses/${id}/`);
   },
 
-  togglePublish: async (id: string, is_published: boolean): Promise<Course> => {
-    return apiClient.patch<Course>(`/content/courses/${id}/`, { is_published });
+  togglePublish: async (id: string, publish: boolean): Promise<Course> => {
+    const action = publish ? 'publish' : 'unpublish';
+    return apiClient.post<Course>(`/content/instructor/courses/${id}/${action}/`, {});
   },
 };
 

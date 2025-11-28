@@ -13,9 +13,11 @@ class ProfileService:
     READ_ONLY_FIELDS = {"id", "email", "created_at", "updated_at"}
 
     @staticmethod
-    def update_profile(self, user: User, data: Dict[str, Any]) -> User:
+    def update_profile(user: User, data: Dict[str, Any]) -> User:
         update_data = {
-            key: value for key, value in data.items() if key in self.EDITABLE_FIELDS
+            key: value
+            for key, value in data.items()
+            if key in ProfileService.EDITABLE_FIELDS
         }
 
         for field, value in update_data.items():
@@ -26,20 +28,11 @@ class ProfileService:
         return user
 
     @staticmethod
-    def deactivate_user(self, user: User):
+    def deactivate_user(user: User):
         user.is_active = False
         user.save()
 
     @staticmethod
-    def activate_user(self, user: User):
-        """
-        Activate a user account.
-
-        Args:
-            user: The user to activate
-
-        Returns:
-            ServiceResult containing the activated user
-        """
+    def activate_user(user: User):
         user.is_active = True
         user.save()

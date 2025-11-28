@@ -42,6 +42,17 @@ from django.db import transaction
 # Mapping of table names to model classes and special handlers
 TABLE_HANDLERS = {}
 
+# Define fixture processing order based on dependencies
+# Users and categories first, then topics, then courses (which depend on all of the above)
+FIXTURE_ORDER = [
+    "users",
+    "categories",
+    "topics",
+    "courses",
+    "enrollments",
+    "progress",
+]
+
 
 def register_handler(table_name):
     """Decorator to register a custom handler for a table."""
@@ -82,6 +93,7 @@ def handle_users(data_list):
             email=email,
             password=password,
             fullname=item.get("fullname", ""),
+            role=item.get("role", "student"),
             is_staff=item.get("is_staff", False),
             is_superuser=item.get("is_superuser", False),
         )
@@ -110,9 +122,36 @@ def handle_categories(data_list):
         Category.objects.create(
             name=name,
             description=item.get("description", ""),
-            icon=item.get("icon", ""),
         )
         print(f"  + Created category: {name}")
+        created_count += 1
+
+    return created_count, skipped_count
+
+
+@register_handler("topics")
+def handle_topics(data_list):
+    """Handler for topics table."""
+    from apps.content.models import Topic
+
+    created_count = 0
+    skipped_count = 0
+
+    for item in data_list:
+        name = item.get("name")
+        slug = item.get("slug")
+
+        if Topic.objects.filter(slug=slug).exists():
+            print(f"  - Skipping existing topic: {name}")
+            skipped_count += 1
+            continue
+
+        Topic.objects.create(
+            name=name,
+            slug=slug,
+            description=item.get("description", ""),
+        )
+        print(f"  + Created topic: {name}")
         created_count += 1
 
     return created_count, skipped_count
@@ -124,7 +163,7 @@ def handle_courses(data_list):
     Handler for courses with nested modules and lessons.
     """
     from apps.authentication.models import User
-    from apps.content.models import Category, Course, Module, Lesson
+    from apps.content.models import Category, Course, Module, Lesson, Topic
 
     created_count = 0
     skipped_count = 0
@@ -161,14 +200,15 @@ def handle_courses(data_list):
             title=title,
             description=item.get("description", ""),
             instructor=instructor,
-            thumbnail=item.get("thumbnail", ""),
-            duration=item.get("duration", ""),
-            level=item.get("level", "beginner"),
+            cover_image=item.get("cover_image", ""),
+            est_duration=item.get("est_duration", 0),
+            difficulty_level=item.get("difficulty_level", "beginner"),
             category=category,
             is_published=item.get("is_published", False),
             rating=item.get("rating", 0.0),
             students_count=item.get("students_count", 0),
         )
+
         print(f"  + Created course: {title}")
         created_count += 1
 
@@ -181,19 +221,29 @@ def handle_courses(data_list):
                 title=module_data.get("title"),
                 description=module_data.get("description", ""),
                 order=module_data.get("order", 0),
+                estimated_duration=module_data.get("estimated_duration", 0),
+                is_published=module_data.get("is_published", False),
             )
             print(f"    + Created module: {module.title}")
 
             for lesson_data in lessons_data:
-                Lesson.objects.create(
+                topic_names = lesson_data.pop("topic_names", [])
+
+                lesson = Lesson.objects.create(
                     module=module,
                     title=lesson_data.get("title"),
-                    type=lesson_data.get("type", "text"),
-                    duration=lesson_data.get("duration", "10 min"),
+                    content_type=lesson_data.get("content_type", "text"),
+                    estimated_duration=lesson_data.get("estimated_duration", 0),
                     order=lesson_data.get("order", 0),
-                    content=lesson_data.get("content", {}),
-                    is_free=lesson_data.get("is_free", False),
+                    content=lesson_data.get("content", ""),
+                    is_published=lesson_data.get("is_published", False),
                 )
+
+                # Add topics to lesson
+                if topic_names:
+                    topics = Topic.objects.filter(name__in=topic_names)
+                    lesson.topics.set(topics)
+
                 print(f"      + Created lesson: {lesson_data.get('title')}")
 
     return created_count, skipped_count
@@ -432,6 +482,7 @@ def seed_from_file(filepath):
 def seed_all(fixtures_dir=None):
     """
     Seed database from all fixture files in the fixtures directory.
+    Files are processed in dependency order defined by FIXTURE_ORDER.
 
     Args:
         fixtures_dir: Path to fixtures directory. Defaults to data/fixtures/
@@ -446,21 +497,32 @@ def seed_all(fixtures_dir=None):
         return
 
     # Find all JSON files
-    fixture_files = sorted(fixtures_dir.glob("*.json"))
+    all_fixture_files = {f.stem: f for f in fixtures_dir.glob("*.json")}
 
-    if not fixture_files:
+    if not all_fixture_files:
         print(f"No fixture files found in: {fixtures_dir}")
         return
+
+    # Order files based on FIXTURE_ORDER, then append any remaining files
+    ordered_files = []
+    for table_name in FIXTURE_ORDER:
+        if table_name in all_fixture_files:
+            ordered_files.append(all_fixture_files.pop(table_name))
+
+    # Add any remaining files not in FIXTURE_ORDER (sorted alphabetically)
+    for name in sorted(all_fixture_files.keys()):
+        ordered_files.append(all_fixture_files[name])
 
     print("=" * 50)
     print("Database Seeding")
     print("=" * 50)
+    print(f"Processing order: {[f.stem for f in ordered_files]}")
 
     total_created = 0
     total_skipped = 0
 
     with transaction.atomic():
-        for filepath in fixture_files:
+        for filepath in ordered_files:
             created, skipped = seed_from_file(filepath)
             total_created += created
             total_skipped += skipped

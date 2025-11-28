@@ -14,66 +14,77 @@ import {
   Switch,
   Paper,
   Grid,
-  Chip,
   CircularProgress,
   Alert,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
-import { instructorCoursesApi, categoriesApi, topicsApi } from '../../services/api';
-import type { Category, Topic, CourseFormData } from '../../types';
+import { Save as SaveIcon, Cancel as CancelIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import ModulesContent from './ModulesContent';
+import { instructorCoursesApi, categoriesApi } from '../../services/api';
+import type { Category } from '../../types';
+
+interface FormData {
+  title: string;
+  description: string;
+  cover_image: string;
+  est_duration: number;
+  difficulty_level: 'beginner' | 'intermediate' | 'advanced';
+  category_id: number | '';
+  is_published: boolean;
+}
 
 export default function CourseForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
+  console.log('CourseForm - URL param ID:', id);
+  console.log('CourseForm - isEditMode:', isEditMode);
+
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
+  const [activeTab, setActiveTab] = useState(0);
 
-  const [formData, setFormData] = useState<CourseFormData>({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
-    thumbnail: '',
-    duration: '',
-    level: 'beginner',
-    category: '',
-    topic_ids: [],
+    cover_image: '',
+    est_duration: 60,
+    difficulty_level: 'beginner',
+    category_id: '',
     is_published: false,
   });
 
   const loadData = async () => {
     try {
-      // Load categories and topics
-      const [categoriesData, topicsData] = await Promise.all([
-        categoriesApi.getAll(),
-        topicsApi.getAll(),
-      ]);
-
+      // Load categories
+      const categoriesData = await categoriesApi.getAll();
       setCategories(categoriesData);
-      setTopics(topicsData);
 
       // Load course if editing
       if (id) {
+        console.log('Loading course with ID:', id);
         const course = await instructorCoursesApi.getById(id);
+        console.log('Loaded course:', course);
+        // Find category id from category name
+        const category = categoriesData.find(c => c.name === course.category);
         setFormData({
           title: course.title,
           description: course.description,
-          thumbnail: course.thumbnail,
-          duration: course.duration,
-          level: course.level,
-          category: course.category,
-          topic_ids: Array.isArray(course.topics)
-            ? course.topics.map(t => typeof t === 'string' ? t : t.id)
-            : [],
-          is_published: course.is_published,
+          cover_image: course.cover_image || '',
+          est_duration: course.est_duration,
+          difficulty_level: course.difficulty_level,
+          category_id: category?.id || '',
+          is_published: course.is_published || false,
         });
       }
     } catch (err) {
-      setError('Failed to load data');
+      setError('Failed to load categories');
       console.error('Error loading data:', err);
     } finally {
       setLoading(false);
@@ -91,12 +102,22 @@ export default function CourseForm() {
     setError(null);
 
     try {
+      const submitData = {
+        title: formData.title,
+        description: formData.description,
+        cover_image: formData.cover_image || undefined,
+        est_duration: formData.est_duration,
+        difficulty_level: formData.difficulty_level,
+        category_id: formData.category_id || undefined,
+        is_published: formData.is_published,
+      };
+
       if (isEditMode && id) {
-        await instructorCoursesApi.update(id, formData);
+        await instructorCoursesApi.update(id, submitData);
       } else {
-        await instructorCoursesApi.create(formData);
+        await instructorCoursesApi.create(submitData);
       }
-      navigate('/instructor/dashboard');
+      navigate('/instructor');
     } catch (err) {
       setError((err as Error).message || 'Failed to save course');
       console.error('Error saving course:', err);
@@ -105,13 +126,25 @@ export default function CourseForm() {
     }
   };
 
-  const handleTopicToggle = (topicId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      topic_ids: prev.topic_ids.includes(topicId)
-        ? prev.topic_ids.filter(id => id !== topicId)
-        : [...prev.topic_ids, topicId],
-    }));
+  const handleDelete = async () => {
+    if (!id) return;
+
+    if (!window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      await instructorCoursesApi.delete(id);
+      navigate('/instructor');
+    } catch (err) {
+      setError((err as Error).message || 'Failed to delete course');
+      console.error('Error deleting course:', err);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -123,7 +156,7 @@ export default function CourseForm() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Paper sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
           {isEditMode ? 'Edit Course' : 'Create New Course'}
@@ -135,6 +168,18 @@ export default function CourseForm() {
           </Alert>
         )}
 
+        {/* Tabs - Only show in edit mode */}
+        {isEditMode && (
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+              <Tab label="Course Info" />
+              <Tab label="Modules & Content" />
+            </Tabs>
+          </Box>
+        )}
+
+        {/* Tab Content */}
+        {activeTab === 0 && (
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
@@ -160,33 +205,34 @@ export default function CourseForm() {
 
           <TextField
             fullWidth
-            label="Thumbnail URL"
-            value={formData.thumbnail}
-            onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
+            label="Cover Image URL"
+            value={formData.cover_image}
+            onChange={(e) => setFormData({ ...formData, cover_image: e.target.value })}
             margin="normal"
-            helperText="Enter a URL for the course thumbnail image"
+            helperText="Enter a URL for the course cover image"
           />
 
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Duration"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                label="Estimated Duration (minutes)"
+                type="number"
+                value={formData.est_duration}
+                onChange={(e) => setFormData({ ...formData, est_duration: parseInt(e.target.value) || 0 })}
                 required
-                placeholder="e.g., 10 hours"
-                helperText="Estimated course duration"
+                inputProps={{ min: 1 }}
+                helperText="Total course duration in minutes"
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Level</InputLabel>
+                <InputLabel>Difficulty Level</InputLabel>
                 <Select
-                  value={formData.level}
-                  onChange={(e) => setFormData({ ...formData, level: e.target.value as 'beginner' | 'intermediate' | 'advanced' })}
-                  label="Level"
+                  value={formData.difficulty_level}
+                  onChange={(e) => setFormData({ ...formData, difficulty_level: e.target.value as 'beginner' | 'intermediate' | 'advanced' })}
+                  label="Difficulty Level"
                   required
                 >
                   <MenuItem value="beginner">Beginner</MenuItem>
@@ -200,10 +246,9 @@ export default function CourseForm() {
           <FormControl fullWidth margin="normal">
             <InputLabel>Category</InputLabel>
             <Select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              value={formData.category_id}
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value as number })}
               label="Category"
-              required
             >
               {categories.map((category) => (
                 <MenuItem key={category.id} value={category.id}>
@@ -212,29 +257,6 @@ export default function CourseForm() {
               ))}
             </Select>
           </FormControl>
-
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Topics (Select all that apply)
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-              {topics.map((topic) => (
-                <Chip
-                  key={topic.id}
-                  label={topic.name}
-                  onClick={() => handleTopicToggle(topic.id)}
-                  color={formData.topic_ids.includes(topic.id) ? 'primary' : 'default'}
-                  variant={formData.topic_ids.includes(topic.id) ? 'filled' : 'outlined'}
-                  clickable
-                />
-              ))}
-            </Box>
-            {formData.topic_ids.length === 0 && (
-              <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                Please select at least one topic
-              </Typography>
-            )}
-          </Box>
 
           <FormControlLabel
             control={
@@ -247,28 +269,48 @@ export default function CourseForm() {
             sx={{ mt: 3 }}
           />
 
-          <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              size="large"
-              startIcon={<SaveIcon />}
-              disabled={saving || formData.topic_ids.length === 0}
-            >
-              {saving ? 'Saving...' : isEditMode ? 'Update Course' : 'Create Course'}
-            </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              startIcon={<CancelIcon />}
-              onClick={() => navigate('/instructor/dashboard')}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
+          <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                size="large"
+                startIcon={<SaveIcon />}
+                disabled={saving || deleting}
+              >
+                {saving ? 'Saving...' : isEditMode ? 'Update Course' : 'Create Course'}
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                startIcon={<CancelIcon />}
+                onClick={() => navigate('/instructor')}
+                disabled={saving || deleting}
+              >
+                Cancel
+              </Button>
+            </Box>
+            {isEditMode && (
+              <Button
+                variant="outlined"
+                color="error"
+                size="large"
+                startIcon={<DeleteIcon />}
+                onClick={handleDelete}
+                disabled={saving || deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            )}
           </Box>
         </Box>
+        )}
+
+        {/* Modules & Content Tab */}
+        {activeTab === 1 && isEditMode && (
+          <ModulesContent />
+        )}
       </Paper>
     </Container>
   );

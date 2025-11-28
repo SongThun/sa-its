@@ -40,7 +40,13 @@ export default function Login() {
     try {
       const result = await login(email, password);
       if (result.success) {
-        navigate('/dashboard');
+        // Check user role and redirect accordingly
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (currentUser.role === 'instructor') {
+          navigate('/instructor');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(result.error || 'Invalid email or password');
       }
@@ -206,7 +212,11 @@ export default function Login() {
             <Typography variant="body2" align="center" sx={{ mt: 3 }}>
               Don't have an account?{' '}
               <Link component={RouterLink} to="/register" underline="hover" fontWeight={500}>
-                Sign up
+                Sign up as Student
+              </Link>
+              {' or '}
+              <Link component={RouterLink} to="/instructor/register" underline="hover" fontWeight={500}>
+                Sign up as Instructor
               </Link>
             </Typography>
 

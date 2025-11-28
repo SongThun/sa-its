@@ -1,15 +1,34 @@
-from django.conf import settings
 from django.db import models
+from django.conf import settings
+import uuid
 
 
 class Category(models.Model):
+    # Uses default auto-incrementing integer id
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "categories"
-        verbose_name_plural = "Categories"
+        verbose_name_plural = "categories"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Topic(models.Model):
+    """Topics act as tags for courses, modules, and lessons."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
         ordering = ["name"]
 
     def __str__(self):
@@ -17,114 +36,110 @@ class Category(models.Model):
 
 
 class Course(models.Model):
-    LEVEL_CHOICES = [
-        ("beginner", "Beginner"),
-        ("intermediate", "Intermediate"),
-        ("advanced", "Advanced"),
-    ]
+    class DifficultyLevel(models.TextChoices):
+        BEGINNER = "beginner", "Beginner"
+        INTERMEDIATE = "intermediate", "Intermediate"
+        ADVANCED = "advanced", "Advanced"
+        EXPERT = "expert", "Expert"
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
-    description = models.TextField()
-    instructor = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="courses_taught",
+    description = models.TextField(blank=True)
+    difficulty_level = models.CharField(
+        max_length=20,
+        choices=DifficultyLevel.choices,
+        default=DifficultyLevel.BEGINNER,
     )
-    thumbnail = models.URLField(blank=True)
-    duration = models.CharField(max_length=50)
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default="beginner")
+    est_duration = models.PositiveIntegerField(
+        help_text="Estimated duration in minutes", default=0
+    )
+    is_published = models.BooleanField(default=False)
+    cover_image = models.URLField(
+        max_length=500,
+        blank=True,
+        default=settings.DEFAULT_COURSE_COVER_IMAGE,
+    )
+    students_count = models.PositiveIntegerField(default=0)
+    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
+
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         related_name="courses",
     )
-    is_published = models.BooleanField(default=False)
-    rating = models.FloatField(default=0.0)
-    students_count = models.PositiveIntegerField(default=0)
+    instructor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="courses_taught",
+    )
+    prerequisites = models.ManyToManyField(
+        "self", symmetrical=False, blank=True, related_name="required_by"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "courses"
         ordering = ["-created_at"]
 
     def __str__(self):
         return self.title
 
-    @property
-    def total_lessons(self):
-        return Lesson.objects.filter(module__course=self).count()
-
-    @property
-    def total_duration_minutes(self):
-        """Calculate total duration in minutes."""
-        lessons = Lesson.objects.filter(module__course=self)
-        total = 0
-        for lesson in lessons:
-            try:
-                # Parse duration like "10 min" or "1h 30min"
-                duration = lesson.duration.lower()
-                if "h" in duration:
-                    parts = duration.replace("h", " ").replace("min", "").split()
-                    total += int(parts[0]) * 60
-                    if len(parts) > 1:
-                        total += int(parts[1])
-                elif "min" in duration:
-                    total += int(duration.replace("min", "").strip())
-            except (ValueError, IndexError):
-                pass
-        return total
-
 
 class Module(models.Model):
-    course = models.ForeignKey(
-        Course,
-        on_delete=models.CASCADE,
-        related_name="modules",
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0)
+    is_published = models.BooleanField(default=False)
+    estimated_duration = models.PositiveIntegerField(
+        help_text="Estimated duration in minutes", default=0
+    )
+
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "modules"
         ordering = ["course", "order"]
         unique_together = ["course", "order"]
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
 
-    @property
-    def total_lessons(self):
-        return self.lessons.count()
-
 
 class Lesson(models.Model):
-    TYPE_CHOICES = [
-        ("video", "Video"),
-        ("text", "Text/Article"),
-        ("interactive", "Interactive"),
-    ]
+    class ContentType(models.TextChoices):
+        VIDEO = "video", "Video"
+        TEXT = "text", "Text"
+        INTERACTIVE = "interactive", "Interactive"
+        DOCUMENT = "document", "Document"
+        QUIZ = "quiz", "Quiz"
 
-    module = models.ForeignKey(
-        Module,
-        on_delete=models.CASCADE,
-        related_name="lessons",
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
-    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="text")
-    duration = models.CharField(max_length=50)
+    content = models.TextField(blank=True, help_text="Lesson content (markdown/html)")
+    content_type = models.CharField(
+        max_length=20,
+        choices=ContentType.choices,
+        default=ContentType.TEXT,
+    )
     order = models.PositiveIntegerField(default=0)
-    content = models.JSONField(default=dict)  # Flexible content storage
+    estimated_duration = models.PositiveIntegerField(
+        help_text="Estimated duration in minutes", default=0
+    )
+    is_published = models.BooleanField(default=False)
+
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons")
+    topics = models.ManyToManyField(Topic, blank=True, related_name="lessons")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "lessons"
         ordering = ["module", "order"]
         unique_together = ["module", "order"]
 

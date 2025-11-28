@@ -12,6 +12,7 @@ import {
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../services/api';
 import { apiClient } from '../../services/apiClient';
+import { useAuth } from '../../hooks/useAuth';
 
 interface RegisterFormData {
   username: string;
@@ -23,6 +24,7 @@ interface RegisterFormData {
 
 const InstructorRegister: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
     username: '',
     email: '',
@@ -59,11 +61,24 @@ const InstructorRegister: React.FC = () => {
       // Store tokens and user info using apiClient methods
       if (response.tokens) {
         apiClient.saveTokens(response.tokens);
-        localStorage.setItem('currentUser', JSON.stringify(response.user));
+        localStorage.setItem('currentUser', JSON.stringify({
+          id: response.user.id,
+          email: response.user.email,
+          firstName: response.user.first_name || response.user.fullname?.split(' ')[0] || '',
+          lastName: response.user.last_name || response.user.fullname?.split(' ').slice(1).join(' ') || '',
+          fullName: response.user.fullname,
+          role: response.user.role,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${response.user.username}`,
+          bio: '',
+          enrolledCourses: [],
+          completedLessons: [],
+          createdAt: response.user.created_at,
+        }));
+        refreshUser();
       }
 
       // Redirect to instructor dashboard
-      navigate('/instructor/dashboard');
+      navigate('/instructor');
     } catch (err: unknown) {
       const error = err as { message?: string; errors?: Record<string, string[]> };
       setError(
@@ -171,7 +186,7 @@ const InstructorRegister: React.FC = () => {
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="body2">
                 Already have an account?{' '}
-                <MuiLink component={Link} to="/instructor/login" variant="body2">
+                <MuiLink component={Link} to="/login" variant="body2">
                   Sign in here
                 </MuiLink>
               </Typography>

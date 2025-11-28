@@ -17,8 +17,6 @@ urlpatterns = [
         name="swagger-ui",
     ),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
-    # API Endpoints - Following Module View Architecture
-    path("api/auth/", include("apps.authentication.urls")),  # User Management
-    path("api/core/", include("apps.core.urls")),  # Core/Shared Resources
-    path("api/content/", include("apps.content.urls")),  # Learning Content Management
+    path("api/auth/", include("apps.authentication.urls")),
+    path("api/content/", include("apps.content.urls")),
 ]
