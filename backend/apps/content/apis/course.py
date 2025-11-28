@@ -4,14 +4,23 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from apps.content.serializers import (
+    CategorySerializer,
     CourseListSerializer,
     CourseDetailSerializer,
     CourseDetailLockedSerializer,
     CourseCreateSerializer,
     CourseUpdateSerializer,
 )
-from apps.content.services.course import CourseService
+from apps.content.services import ContentFacade
 from apps.content.permissions import IsInstructor, IsOwner
+
+
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only viewset for categories."""
+
+    queryset = ContentFacade.get_all_category()
+    serializer_class = CategorySerializer
+    permission_classes = [AllowAny]
 
 
 class CoursePublicViewSet(viewsets.ReadOnlyModelViewSet):
@@ -21,13 +30,13 @@ class CoursePublicViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        return CourseService.get_published_courses()
+        return ContentFacade.get_published_courses()
 
     def retrieve(self, request, *args, **kwargs):
         course = self.get_object()
         user = request.user
 
-        if user.is_authenticated and CourseService.check_enrollment(user, course):
+        if user.is_authenticated and ContentFacade.check_enrollment(user, course):
             serializer = CourseDetailSerializer(course)
         else:
             serializer = CourseDetailLockedSerializer(course)
@@ -57,17 +66,54 @@ class CourseInstructorViewSet(viewsets.ModelViewSet):
         return actions.get(self.action, CourseListSerializer)
 
     def get_queryset(self):
-        return CourseService.get_courses_for_instructor(self.request.user)
+        return ContentFacade.get_courses_for_instructor(self.request.user)
 
-    def perform_create(self, serializer):
-        serializer.save(instructor=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Resolve category_id to Category object
+        resolved_data = ContentFacade.resolve_course_fks(serializer.validated_data)
+        if resolved_data is None:
+            return Response(
+                {"error": "Invalid category_id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Create course with resolved FKs
+        course = serializer.save(instructor=request.user, **resolved_data)
+        response_serializer = CourseDetailSerializer(
+            course, context=self.get_serializer_context()
+        )
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        # Resolve category_id to Category object
+        resolved_data = ContentFacade.resolve_course_fks(serializer.validated_data)
+        if resolved_data is None:
+            return Response(
+                {"error": "Invalid category_id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Update course with resolved FKs
+        course = serializer.save(**resolved_data)
+        response_serializer = CourseDetailSerializer(
+            course, context=self.get_serializer_context()
+        )
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     @action(
         detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsOwner]
     )
     def publish(self, request, *args, **kwargs):
         course = self.get_object()
-        CourseService.publish(course)
+        ContentFacade.publish(course)
         course.refresh_from_db()
         serializer = CourseListSerializer(course, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -77,7 +123,7 @@ class CourseInstructorViewSet(viewsets.ModelViewSet):
     )
     def unpublish(self, request, *args, **kwargs):
         course = self.get_object()
-        CourseService.unpublish(course)
+        ContentFacade.unpublish(course)
         course.refresh_from_db()
         serializer = CourseListSerializer(course, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)

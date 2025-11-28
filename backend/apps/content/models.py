@@ -104,7 +104,7 @@ class Module(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["course", "order"]
+        ordering = ["course", "order", "created_at"]
         unique_together = ["course", "order"]
 
     def __str__(self):
@@ -140,8 +140,7 @@ class Lesson(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["module", "order"]
-        unique_together = ["module", "order"]
+        ordering = ["module", "order", "created_at"]
 
     def __str__(self):
         return f"{self.module.title} - {self.title}"

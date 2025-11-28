@@ -1,35 +1,27 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 
-from apps.content.models import Module, Course
-from apps.content.serializers import (
-    ModuleSerializer,
-    ModuleCreateSerializer,
-    ModuleUpdateSerializer,
-)
-from apps.content.permissions import IsInstructor
+from apps.content.serializers import ModuleSerializer, ModuleModelSerializer
+from apps.content.permissions import IsInstructor, IsOwner
+from apps.content.services import ContentFacade
 
 
 class ModuleViewSet(viewsets.ModelViewSet):
-    """API for managing modules within a course."""
-
-    permission_classes = [IsAuthenticated, IsInstructor]
+    permission_classes = [IsInstructor, IsOwner]
 
     def get_serializer_class(self):
         actions = {
             "list": ModuleSerializer,
             "retrieve": ModuleSerializer,
-            "create": ModuleCreateSerializer,
-            "update": ModuleUpdateSerializer,
-            "partial_update": ModuleUpdateSerializer,
+            "create": ModuleModelSerializer,
+            "update": ModuleModelSerializer,
+            "partial_update": ModuleModelSerializer,
         }
         return actions.get(self.action, ModuleSerializer)
 
     def get_queryset(self):
-        """Get modules for instructor's courses only."""
-        return Module.objects.filter(course__instructor=self.request.user)
+        return ContentFacade.get_modules_for_instructor(self.request.user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -37,6 +29,9 @@ class ModuleViewSet(viewsets.ModelViewSet):
         return context
 
     def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         course_id = request.data.get("course_id")
         if not course_id:
             return Response(
@@ -44,29 +39,55 @@ class ModuleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            course = Course.objects.get(id=course_id, instructor=request.user)
-        except Course.DoesNotExist:
+        module = ContentFacade.add_module_to_course(
+            instructor=request.user,
+            course_id=course_id,
+            module_data=serializer.validated_data,
+        )
+
+        if not module:
             return Response(
-                {"error": "Course not found or you don't have permission"},
+                {"detail": "Course not found or you don't have permission"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(course=course)
+        serializer = ModuleSerializer(module, context=self.get_serializer_context())
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+
+        # Validate ownership through service
+        module, validated_data = ContentFacade.resolve_module_update(
+            instructor=request.user,
+            module_id=kwargs.get("pk"),
+            module_data=request.data,
+        )
+
+        if not module:
+            return Response(
+                {"detail": "Module not found or you don't have permission"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Use serializer to update with validated data
+        serializer = self.get_serializer(module, data=validated_data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        module = serializer.save()
+
+        response_serializer = ModuleSerializer(
+            module, context=self.get_serializer_context()
+        )
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"])
     def publish(self, request, pk=None):
         module = self.get_object()
-        module.is_published = True
-        module.save(update_fields=["is_published", "updated_at"])
+        ContentFacade.publish(module)
         return Response({"detail": f"Module '{module.title}' published"})
 
     @action(detail=True, methods=["post"])
     def unpublish(self, request, pk=None):
         module = self.get_object()
-        module.is_published = False
-        module.save(update_fields=["is_published", "updated_at"])
+        ContentFacade.unpublish(module)
         return Response({"detail": f"Module '{module.title}' unpublished"})

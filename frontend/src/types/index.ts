@@ -51,6 +51,7 @@ export interface Module {
   description: string;
   order: number;
   estimated_duration: number; // in minutes
+  is_published?: boolean;
   total_lessons?: number; // only in unlocked view
   lessons?: Lesson[]; // only in unlocked view
   created_at?: string;

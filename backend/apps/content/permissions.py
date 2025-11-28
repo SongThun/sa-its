@@ -13,7 +13,16 @@ class IsInstructor(BasePermission):
 
 
 class IsOwner(BasePermission):
-    """Permission check for course ownership."""
+    """Permission check for object ownership."""
 
     def has_object_permission(self, request, view, obj):
-        return obj.instructor == request.user
+        if hasattr(obj, "instructor"):
+            return obj.instructor == request.user
+
+        if hasattr(obj, "course"):
+            return obj.course.instructor == request.user
+
+        if hasattr(obj, "module"):
+            return obj.module.course.instructor == request.user
+
+        return False

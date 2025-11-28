@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -12,6 +13,8 @@ import {
   ListItemText,
   Chip,
   Divider,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -20,77 +23,21 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   DragIndicator as DragIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import ModuleDialog from './ModuleDialog';
 import LessonDialog from './LessonDialog';
+import { modulesApi, lessonsApi, instructorCoursesApi } from '../../services/api';
 import type { Module, Lesson } from '../../types';
 
-// Mock data for now
-const mockModules: Module[] = [
-  {
-    id: '1',
-    title: 'Getting Started',
-    description: 'Introduction to the course',
-    order: 1,
-    estimated_duration: 45,
-    total_lessons: 2,
-    lessons: [
-      {
-        id: 'l1',
-        title: 'Introduction',
-        content_type: 'video',
-        order: 1,
-        estimated_duration: 15,
-      },
-      {
-        id: 'l2',
-        title: 'Setup Environment',
-        content_type: 'text',
-        order: 2,
-        estimated_duration: 30,
-      },
-    ],
-  },
-  {
-    id: '2',
-    title: 'Core Concepts',
-    description: 'Learn the fundamentals',
-    order: 2,
-    estimated_duration: 90,
-    total_lessons: 3,
-    lessons: [
-      {
-        id: 'l3',
-        title: 'Components',
-        content_type: 'video',
-        order: 1,
-        estimated_duration: 30,
-      },
-      {
-        id: 'l4',
-        title: 'State Management',
-        content_type: 'interactive',
-        order: 2,
-        estimated_duration: 40,
-      },
-      {
-        id: 'l5',
-        title: 'Quiz',
-        content_type: 'quiz',
-        order: 3,
-        estimated_duration: 20,
-      },
-    ],
-  },
-];
-
-// interface ModulesContentProps {
-//   courseId?: string;
-// }
-
 export default function ModulesContent() {
-  const [modules, setModules] = useState<Module[]>(mockModules);
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(['1']));
+  const { id: courseId } = useParams<{ id: string }>();
+
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
   // Dialog states
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
@@ -98,6 +45,33 @@ export default function ModulesContent() {
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [editingLesson, setEditingLesson] = useState<{ module: Module; lesson: Lesson } | null>(null);
   const [targetModuleId, setTargetModuleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (courseId) {
+      loadModules();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId]);
+
+  const loadModules = async () => {
+    if (!courseId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const course = await instructorCoursesApi.getById(courseId);
+      setModules(course.modules || []);
+      // Expand first module by default
+      if (course.modules && course.modules.length > 0) {
+        setExpandedModules(new Set([course.modules[0].id]));
+      }
+    } catch (err) {
+      setError((err as Error).message || 'Failed to load modules');
+      console.error('Error loading modules:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev => {
@@ -124,30 +98,67 @@ export default function ModulesContent() {
     }
   };
 
-  const handleSaveModule = (data: Partial<Module>) => {
-    if (editingModule) {
-      // Update existing module
-      setModules(modules.map(m =>
-        m.id === editingModule.id ? { ...m, ...data } : m
-      ));
-    } else {
-      // Create new module
-      const newModule: Module = {
-        id: Date.now().toString(),
-        title: data.title || '',
-        description: data.description || '',
-        order: data.order || modules.length + 1,
-        estimated_duration: data.estimated_duration || 60,
-        total_lessons: 0,
-        lessons: [],
-      };
-      setModules([...modules, newModule]);
+  const handleSaveModule = async (data: Partial<Module>) => {
+    if (!courseId) return;
+
+    try {
+      if (editingModule) {
+        // Update existing module
+        const updated = await modulesApi.update(editingModule.id, {
+          title: data.title!,
+          description: data.description!,
+          order: data.order!,
+          estimated_duration: data.estimated_duration!,
+        });
+        setModules(modules.map(m => m.id === editingModule.id ? updated : m));
+      } else {
+        // Create new module
+        const newModule = await modulesApi.create({
+          course_id: courseId,
+          title: data.title!,
+          description: data.description!,
+          order: data.order || modules.length + 1,
+          estimated_duration: data.estimated_duration!,
+        });
+        setModules([...modules, newModule]);
+      }
+      setModuleDialogOpen(false);
+    } catch (err) {
+      console.error('Error saving module:', err);
+      alert('Failed to save module');
     }
   };
 
-  const handleDeleteModule = (moduleId: string) => {
-    if (window.confirm('Are you sure you want to delete this module?')) {
+  const handleDeleteModule = async (moduleId: string) => {
+    if (!window.confirm('Are you sure you want to delete this module?')) {
+      return;
+    }
+
+    try {
+      await modulesApi.delete(moduleId);
       setModules(modules.filter(m => m.id !== moduleId));
+    } catch (err) {
+      console.error('Error deleting module:', err);
+      alert('Failed to delete module');
+    }
+  };
+
+  const handleToggleModulePublish = async (moduleId: string, currentStatus: boolean) => {
+    try {
+      const module = modules.find(m => m.id === moduleId);
+      if (!module) return;
+
+      const updated = await modulesApi.update(moduleId, {
+        title: module.title,
+        description: module.description,
+        order: module.order,
+        estimated_duration: module.estimated_duration,
+        is_published: !currentStatus,
+      });
+      setModules(modules.map(m => m.id === moduleId ? { ...m, is_published: updated.is_published } : m));
+    } catch (err) {
+      console.error('Error toggling module publish status:', err);
+      alert('Failed to update module');
     }
   };
 
@@ -167,45 +178,68 @@ export default function ModulesContent() {
     }
   };
 
-  const handleSaveLesson = (data: Partial<Lesson>) => {
-    if (editingLesson) {
-      // Update existing lesson
-      setModules(modules.map(m => {
-        if (m.id === targetModuleId && m.lessons) {
-          return {
-            ...m,
-            lessons: m.lessons.map(l =>
-              l.id === editingLesson.lesson.id ? { ...l, ...data } : l
-            ),
-          };
-        }
-        return m;
-      }));
-    } else if (targetModuleId) {
-      // Create new lesson
-      const newLesson: Lesson = {
-        id: Date.now().toString(),
-        title: data.title || '',
-        content_type: data.content_type || 'video',
-        order: data.order || 1,
-        estimated_duration: data.estimated_duration || 15,
-        content: data.content,
-      };
-      setModules(modules.map(m => {
-        if (m.id === targetModuleId) {
-          return {
-            ...m,
-            lessons: [...(m.lessons || []), newLesson],
-            total_lessons: (m.total_lessons || 0) + 1,
-          };
-        }
-        return m;
-      }));
+  const handleSaveLesson = async (data: Partial<Lesson>) => {
+    if (!targetModuleId) return;
+
+    try {
+      if (editingLesson) {
+        // Update existing lesson
+        const updated = await lessonsApi.update(editingLesson.lesson.id, {
+          module_id: targetModuleId,
+          title: data.title!,
+          content_type: data.content_type!,
+          order: data.order!,
+          estimated_duration: data.estimated_duration!,
+          content: data.content,
+        });
+
+        setModules(modules.map(m => {
+          if (m.id === targetModuleId && m.lessons) {
+            return {
+              ...m,
+              lessons: m.lessons.map(l =>
+                l.id === editingLesson.lesson.id ? updated : l
+              ),
+            };
+          }
+          return m;
+        }));
+      } else {
+        // Create new lesson
+        const newLesson = await lessonsApi.create({
+          module_id: targetModuleId,
+          title: data.title!,
+          content_type: data.content_type!,
+          order: data.order || 1,
+          estimated_duration: data.estimated_duration!,
+          content: data.content,
+        });
+
+        setModules(modules.map(m => {
+          if (m.id === targetModuleId) {
+            return {
+              ...m,
+              lessons: [...(m.lessons || []), newLesson],
+              total_lessons: (m.total_lessons || 0) + 1,
+            };
+          }
+          return m;
+        }));
+      }
+      setLessonDialogOpen(false);
+    } catch (err) {
+      console.error('Error saving lesson:', err);
+      alert('Failed to save lesson');
     }
   };
 
-  const handleDeleteLesson = (moduleId: string, lessonId: string) => {
-    if (window.confirm('Are you sure you want to delete this lesson?')) {
+  const handleDeleteLesson = async (moduleId: string, lessonId: string) => {
+    if (!window.confirm('Are you sure you want to delete this lesson?')) {
+      return;
+    }
+
+    try {
+      await lessonsApi.delete(lessonId);
       setModules(modules.map(m => {
         if (m.id === moduleId && m.lessons) {
           return {
@@ -216,6 +250,40 @@ export default function ModulesContent() {
         }
         return m;
       }));
+    } catch (err) {
+      console.error('Error deleting lesson:', err);
+      alert('Failed to delete lesson');
+    }
+  };
+
+  const handleToggleLessonPublish = async (moduleId: string, lessonId: string, currentStatus: boolean) => {
+    try {
+      const module = modules.find(m => m.id === moduleId);
+      const lesson = module?.lessons?.find(l => l.id === lessonId);
+      if (!lesson) return;
+
+      const updated = await lessonsApi.update(lessonId, {
+        module_id: moduleId,
+        title: lesson.title,
+        content_type: lesson.content_type,
+        order: lesson.order,
+        estimated_duration: lesson.estimated_duration,
+        content: lesson.content,
+        is_published: !currentStatus,
+      });
+
+      setModules(modules.map(m => {
+        if (m.id === moduleId && m.lessons) {
+          return {
+            ...m,
+            lessons: m.lessons.map(l => l.id === lessonId ? { ...l, is_published: updated.is_published } : l),
+          };
+        }
+        return m;
+      }));
+    } catch (err) {
+      console.error('Error toggling lesson publish status:', err);
+      alert('Failed to update lesson');
     }
   };
 
@@ -229,6 +297,22 @@ export default function ModulesContent() {
       default: return 'default';
     }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ mb: 3 }}>
+        {error}
+      </Alert>
+    );
+  }
 
   return (
     <Box>
@@ -278,13 +362,25 @@ export default function ModulesContent() {
 
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="h6">
-                      Module {module.order}: {module.title}
+                      {module.title}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       {module.estimated_duration} min • {module.total_lessons || 0} lessons
                     </Typography>
                   </Box>
 
+                  <IconButton
+                    size="small"
+                    onClick={() => handleToggleModulePublish(module.id, module.is_published || false)}
+                    sx={{
+                      opacity: 0.7,
+                      '&:hover': {
+                        opacity: 1,
+                      },
+                    }}
+                  >
+                    {module.is_published ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                  </IconButton>
                   <IconButton size="small" onClick={() => handleEditModule(module.id)}>
                     <EditIcon />
                   </IconButton>
@@ -327,6 +423,18 @@ export default function ModulesContent() {
                               <Box>
                                 <IconButton
                                   size="small"
+                                  onClick={() => handleToggleLessonPublish(module.id, lesson.id, lesson.is_published || false)}
+                                  sx={{
+                                    opacity: 0.7,
+                                    '&:hover': {
+                                      opacity: 1,
+                                    },
+                                  }}
+                                >
+                                  {lesson.is_published ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+                                </IconButton>
+                                <IconButton
+                                  size="small"
                                   onClick={() => handleEditLesson(module.id, lesson.id)}
                                 >
                                   <EditIcon fontSize="small" />
@@ -348,7 +456,7 @@ export default function ModulesContent() {
                               primary={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <Typography variant="body1">
-                                    Lesson {lesson.order}: {lesson.title}
+                                    {lesson.title}
                                   </Typography>
                                   <Chip
                                     label={lesson.content_type}

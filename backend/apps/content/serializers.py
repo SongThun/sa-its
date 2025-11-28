@@ -151,7 +151,6 @@ class ModuleLockedSerializer(serializers.ModelSerializer):
         return obj.lessons.filter(is_published=True).count()
 
 
-# ============ Course Serializers ============
 class CourseListSerializer(serializers.ModelSerializer):
     """Serializer for course list view."""
 
@@ -310,12 +309,6 @@ class CourseCreateSerializer(serializers.ModelSerializer):
             "category_id",
         ]
 
-    def create(self, validated_data):
-        category_id = validated_data.pop("category_id", None)
-        if category_id:
-            validated_data["category"] = Category.objects.get(id=category_id)
-        return super().create(validated_data)
-
 
 class CourseUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating courses."""
@@ -336,72 +329,17 @@ class CourseUpdateSerializer(serializers.ModelSerializer):
             "is_published",
         ]
 
-    def update(self, instance, validated_data):
-        category_id = validated_data.pop("category_id", None)
-        if category_id is not None:
-            instance.category = (
-                Category.objects.get(id=category_id) if category_id else None
-            )
-        return super().update(instance, validated_data)
 
-
-# ============ Module Create/Update Serializers ============
-class ModuleCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating modules."""
+class ModuleModelSerializer(serializers.ModelSerializer):
+    """Serializer for creating and updating modules."""
 
     class Meta:
         model = Module
-        fields = [
-            "title",
-            "description",
-            "order",
-            "estimated_duration",
-        ]
+        fields = ["title", "description", "order", "estimated_duration", "is_published"]
 
 
-class ModuleUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating modules."""
-
-    class Meta:
-        model = Module
-        fields = [
-            "title",
-            "description",
-            "order",
-            "estimated_duration",
-            "is_published",
-        ]
-
-
-# ============ Lesson Create/Update Serializers ============
-class LessonCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating lessons."""
-
-    topic_ids = serializers.ListField(
-        child=serializers.UUIDField(), write_only=True, required=False
-    )
-
-    class Meta:
-        model = Lesson
-        fields = [
-            "title",
-            "content",
-            "content_type",
-            "order",
-            "estimated_duration",
-            "topic_ids",
-        ]
-
-    def create(self, validated_data):
-        topic_ids = validated_data.pop("topic_ids", [])
-        lesson = super().create(validated_data)
-        if topic_ids:
-            lesson.topics.set(Topic.objects.filter(id__in=topic_ids))
-        return lesson
-
-
-class LessonUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating lessons."""
+class LessonModelSerializer(serializers.ModelSerializer):
+    """Serializer for creating and updating lessons."""
 
     topic_ids = serializers.ListField(
         child=serializers.UUIDField(), write_only=True, required=False
@@ -418,10 +356,3 @@ class LessonUpdateSerializer(serializers.ModelSerializer):
             "is_published",
             "topic_ids",
         ]
-
-    def update(self, instance, validated_data):
-        topic_ids = validated_data.pop("topic_ids", None)
-        instance = super().update(instance, validated_data)
-        if topic_ids is not None:
-            instance.topics.set(Topic.objects.filter(id__in=topic_ids))
-        return instance

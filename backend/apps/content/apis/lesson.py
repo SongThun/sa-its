@@ -3,14 +3,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from apps.content.models import Lesson, Module
 from apps.content.serializers import (
     LessonDetailSerializer,
     LessonListSerializer,
-    LessonCreateSerializer,
-    LessonUpdateSerializer,
+    LessonModelSerializer,
 )
-from apps.content.permissions import IsInstructor
+from apps.content.permissions import IsInstructor, IsOwner
+
+from apps.content.services import ContentFacade
 
 
 class LessonViewSet(viewsets.ModelViewSet):
@@ -22,15 +22,14 @@ class LessonViewSet(viewsets.ModelViewSet):
         actions = {
             "list": LessonListSerializer,
             "retrieve": LessonDetailSerializer,
-            "create": LessonCreateSerializer,
-            "update": LessonUpdateSerializer,
-            "partial_update": LessonUpdateSerializer,
+            "create": LessonModelSerializer,
+            "update": LessonModelSerializer,
+            "partial_update": LessonModelSerializer,
         }
         return actions.get(self.action, LessonDetailSerializer)
 
     def get_queryset(self):
-        """Get lessons for instructor's courses only."""
-        return Lesson.objects.filter(module__course__instructor=self.request.user)
+        return ContentFacade.get_lessons_for_instructor(self.request.user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -38,6 +37,9 @@ class LessonViewSet(viewsets.ModelViewSet):
         return context
 
     def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         module_id = request.data.get("module_id")
         if not module_id:
             return Response(
@@ -45,29 +47,80 @@ class LessonViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            module = Module.objects.get(id=module_id, course__instructor=request.user)
-        except Module.DoesNotExist:
+        lesson = ContentFacade.add_lesson_to_module(
+            instructor=self.request.user,
+            module_id=module_id,
+            lesson_data=serializer.validated_data,
+        )
+        if not lesson:
             return Response(
                 {"error": "Module not found or you don't have permission"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(module=module)
+        serializer = LessonDetailSerializer(
+            lesson, context=self.get_serializer_context()
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["post"])
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+
+        # Validate ownership and resolve topic_ids through service
+        result = ContentFacade.resolve_lesson_update(
+            instructor=request.user,
+            lesson_id=kwargs.get("pk"),
+            lesson_data=request.data,
+        )
+
+        if result[0] is None:
+            return Response(
+                {"error": "Lesson not found or you don't have permission"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        lesson, validated_data, topic_ids = result
+
+        # Use serializer to update with validated data (without topic_ids)
+        serializer = self.get_serializer(lesson, data=validated_data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        lesson = serializer.save()
+
+        # Update topics if provided
+        if topic_ids is not None:
+            from apps.content.models import Topic
+
+            lesson.topics.set(Topic.objects.filter(id__in=topic_ids))
+
+        response_serializer = LessonDetailSerializer(
+            lesson, context=self.get_serializer_context()
+        )
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, IsInstructor, IsOwner],
+    )
     def publish(self, request, pk=None):
         lesson = self.get_object()
         lesson.is_published = True
         lesson.save(update_fields=["is_published", "updated_at"])
-        return Response({"detail": f"Lesson '{lesson.title}' published"})
+        serializer = LessonDetailSerializer(
+            lesson, context=self.get_serializer_context()
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, IsInstructor, IsOwner],
+    )
     def unpublish(self, request, pk=None):
         lesson = self.get_object()
         lesson.is_published = False
         lesson.save(update_fields=["is_published", "updated_at"])
-        return Response({"detail": f"Lesson '{lesson.title}' unpublished"})
+        serializer = LessonDetailSerializer(
+            lesson, context=self.get_serializer_context()
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)

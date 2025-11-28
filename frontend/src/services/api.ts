@@ -356,19 +356,19 @@ export const modulesApi = {
   },
 
   getById: async (id: string): Promise<Module> => {
-    return apiClient.get<Module>(`/content/modules/${id}/`);
+    return apiClient.get<Module>(`/content/instructor/modules/${id}/`);
   },
 
   create: async (data: ModuleFormData): Promise<Module> => {
-    return apiClient.post<Module>('/content/modules/', data);
+    return apiClient.post<Module>('/content/instructor/modules/', data);
   },
 
   update: async (id: string, data: Partial<ModuleFormData>): Promise<Module> => {
-    return apiClient.put<Module>(`/content/modules/${id}/`, data);
+    return apiClient.patch<Module>(`/content/instructor/modules/${id}/`, data);
   },
 
   delete: async (id: string): Promise<void> => {
-    return apiClient.delete(`/content/modules/${id}/`);
+    return apiClient.delete(`/content/instructor/modules/${id}/`);
   },
 };
 
@@ -378,19 +378,19 @@ export const lessonsApi = {
   },
 
   getById: async (id: string): Promise<Lesson> => {
-    return apiClient.get<Lesson>(`/content/lessons/${id}/`);
+    return apiClient.get<Lesson>(`/content/instructor/lessons/${id}/`);
   },
 
   create: async (data: LessonFormData): Promise<Lesson> => {
-    return apiClient.post<Lesson>('/content/lessons/', data);
+    return apiClient.post<Lesson>('/content/instructor/lessons/', data);
   },
 
   update: async (id: string, data: Partial<LessonFormData>): Promise<Lesson> => {
-    return apiClient.put<Lesson>(`/content/lessons/${id}/`, data);
+    return apiClient.patch<Lesson>(`/content/instructor/lessons/${id}/`, data);
   },
 
   delete: async (id: string): Promise<void> => {
-    return apiClient.delete(`/content/lessons/${id}/`);
+    return apiClient.delete(`/content/instructor/lessons/${id}/`);
   },
 };
 
