@@ -40,6 +40,10 @@ interface LoginResponse {
 
 interface RegisterResponse {
   user: BackendUser;
+  tokens: {
+    access: string;
+    refresh: string;
+  };
   message: string;
 }
 
