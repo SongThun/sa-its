@@ -84,7 +84,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: 'student',
       });
       if (response?.user) {
-        // Registration successful - user needs to login separately
+        // Save authentication tokens (backend returns tokens on registration)
+        if (response.tokens) {
+          apiClient.saveTokens(response.tokens);
+        }
+
+        // Transform and save user data to automatically log them in
+        const transformedUser: User = {
+          id: response.user.id,
+          email: response.user.email,
+          first_name: response.user.first_name || response.user.fullname?.split(' ')[0] || '',
+          last_name: response.user.last_name || response.user.fullname?.split(' ').slice(1).join(' ') || '',
+          full_name: response.user.fullname,
+          role: response.user.role,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${response.user.username}`,
+          bio: '',
+          enrolled_courses: [],
+          completed_lessons: [],
+          created_at: response.user.created_at,
+        };
+        localStorage.setItem('currentUser', JSON.stringify(transformedUser));
+        setUser(transformedUser);
         return { success: true };
       }
       return { success: false, error: 'Registration failed' };
