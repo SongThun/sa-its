@@ -99,7 +99,7 @@ export default function Navbar() {
                 <IconButton onClick={handleMenuOpen} sx={{ ml: 1 }}>
                   <Avatar
                     src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=default`}
-                    alt={user?.firstName}
+                    alt={user?.first_name}
                     sx={{ width: 36, height: 36 }}
                   />
                 </IconButton>
@@ -116,7 +116,7 @@ export default function Navbar() {
                 >
                   <MenuItem disabled sx={{ opacity: 1 }}>
                     <Typography variant="body2" color="text.secondary">
-                      {user?.firstName} {user?.lastName}
+                      {user?.first_name} {user?.last_name}
                     </Typography>
                   </MenuItem>
                   <MenuItem onClick={handleProfile}>

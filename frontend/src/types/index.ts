@@ -126,6 +126,7 @@ export interface ModuleFormData {
   description: string;
   order: number;
   estimated_duration: number;
+  is_published?: boolean;
 }
 
 export interface LessonFormData {
@@ -137,6 +138,7 @@ export interface LessonFormData {
   content?: string;
   content_data?: LessonContentData;
   topic_ids?: number[]; // integer array for topics
+  is_published?: boolean;
 }
 
 // Progress types (matches backend response from /learning/courses/{id}/progress/)

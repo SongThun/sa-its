@@ -65,7 +65,7 @@ export default function Courses() {
     return matchesSearch && matchesCategory && matchesLevel;
   });
 
-  const isEnrolled = (courseId: string) => user?.enrolledCourses.includes(courseId) || false;
+  const isEnrolled = (courseId: string) => user?.enrolled_courses?.includes(courseId) || false;
 
   const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 

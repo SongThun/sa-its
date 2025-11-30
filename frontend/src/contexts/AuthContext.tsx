@@ -46,15 +46,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const transformedUser: User = {
           id: response.user.id,
           email: response.user.email,
-          firstName: response.user.first_name || response.user.fullname?.split(' ')[0] || '',
-          lastName: response.user.last_name || response.user.fullname?.split(' ').slice(1).join(' ') || '',
-          fullName: response.user.fullname,
+          first_name: response.user.first_name || response.user.fullname?.split(' ')[0] || '',
+          last_name: response.user.last_name || response.user.fullname?.split(' ').slice(1).join(' ') || '',
+          full_name: response.user.fullname,
           role: response.user.role,
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${response.user.username}`,
           bio: '',
-          enrolledCourses: [],
-          completedLessons: [],
-          createdAt: response.user.created_at,
+          enrolled_courses: [],
+          completed_lessons: [],
+          created_at: response.user.created_at,
         };
         localStorage.setItem('currentUser', JSON.stringify(transformedUser));
         setUser(transformedUser);
@@ -84,26 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: 'student',
       });
       if (response?.user) {
-        // Save authentication tokens
-        if (response.tokens) {
-          apiClient.saveTokens(response.tokens);
-        }
-
-        const transformedUser: User = {
-          id: response.user.id,
-          email: response.user.email,
-          firstName: response.user.first_name || firstName,
-          lastName: response.user.last_name || lastName,
-          fullName: response.user.fullname,
-          role: response.user.role,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${response.user.username}`,
-          bio: '',
-          enrolledCourses: [],
-          completedLessons: [],
-          createdAt: response.user.created_at,
-        };
-        localStorage.setItem('currentUser', JSON.stringify(transformedUser));
-        setUser(transformedUser);
+        // Registration successful - user needs to login separately
         return { success: true };
       }
       return { success: false, error: 'Registration failed' };
