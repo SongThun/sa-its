@@ -1,44 +1,38 @@
-"""
-URL configuration for Content Management module.
-"""
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
-from django.urls import path
-from .views import (
-    CategoryListView,
-    CourseListView,
-    CourseDetailView,
-    CourseCreateView,
-    CourseUpdateView,
-    CourseDeleteView,
-    ModuleListView,
-    ModuleCreateView,
-    LessonListView,
-    LessonDetailView,
-    LessonCreateView,
+from apps.content.apis import (
+    CoursePublicViewSet,
+    CourseInstructorViewSet,
+    ModuleViewSet,
+    CourseModulesView,
+    LessonViewSet,
+    ModuleLessonsView,
+    CategoryViewSet,
+    TopicViewSet,
 )
 
+router = DefaultRouter()
+router.register(r"courses", CoursePublicViewSet, basename="course")
+router.register(r"categories", CategoryViewSet, basename="category")
+router.register(r"topics", TopicViewSet, basename="topic")
+router.register(
+    r"instructor/courses", CourseInstructorViewSet, basename="instructor-course"
+)
+router.register(r"instructor/modules", ModuleViewSet, basename="instructor-module")
+router.register(r"instructor/lessons", LessonViewSet, basename="instructor-lesson")
+
 urlpatterns = [
-    # Categories
-    path("categories/", CategoryListView.as_view(), name="category-list"),
-    # Courses
-    path("courses/", CourseListView.as_view(), name="course-list"),
-    path("courses/create/", CourseCreateView.as_view(), name="course-create"),
-    path("courses/<int:pk>/", CourseDetailView.as_view(), name="course-detail"),
-    path("courses/<int:pk>/update/", CourseUpdateView.as_view(), name="course-update"),
-    path("courses/<int:pk>/delete/", CourseDeleteView.as_view(), name="course-delete"),
-    # Modules
+    path("", include(router.urls)),
+    # Nested routes for modules and lessons
     path(
-        "courses/<int:course_id>/modules/",
-        ModuleListView.as_view(),
-        name="module-list",
+        "courses/<uuid:course_id>/modules/",
+        CourseModulesView.as_view(),
+        name="course-modules",
     ),
-    path("modules/create/", ModuleCreateView.as_view(), name="module-create"),
-    # Lessons
     path(
-        "modules/<int:module_id>/lessons/",
-        LessonListView.as_view(),
-        name="lesson-list",
+        "modules/<uuid:module_id>/lessons/",
+        ModuleLessonsView.as_view(),
+        name="module-lessons",
     ),
-    path("lessons/<int:pk>/", LessonDetailView.as_view(), name="lesson-detail"),
-    path("lessons/create/", LessonCreateView.as_view(), name="lesson-create"),
 ]

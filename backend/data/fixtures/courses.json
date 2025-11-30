@@ -5,9 +5,9 @@
       "title": "Python for Beginners",
       "description": "Learn Python programming from scratch. This course covers fundamentals, data structures, functions, and object-oriented programming.",
       "instructor_email": "instructor1@example.com",
-      "thumbnail": "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800",
-      "duration": "10 hours",
-      "level": "beginner",
+      "cover_image": "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800",
+      "est_duration": 600,
+      "difficulty_level": "beginner",
       "category_name": "Programming",
       "is_published": true,
       "rating": 4.8,
@@ -16,107 +16,180 @@
         {
           "title": "Getting Started with Python",
           "description": "Introduction to Python and setting up your development environment",
-          "order": 1,
+          "order": 0,
+          "estimated_duration": 45,
+          "is_published": true,
           "lessons": [
             {
               "title": "Introduction to Python",
-              "type": "video",
-              "duration": "15 min",
-              "order": 1,
-              "content": {
-                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                "description": "Learn what Python is and why it's popular"
-              }
+              "content_type": "video",
+              "estimated_duration": 15,
+              "order": 0,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/kqtD5dpn9C8",
+                "video_id": "kqtD5dpn9C8",
+                "duration_seconds": 900,
+                "transcript": "Welcome to Python programming! In this video, we'll explore why Python is one of the most popular programming languages in the world.\n\nPython is known for:\n• Clean, readable syntax\n• Extensive standard library\n• Large community and ecosystem\n• Versatile applications (web, data science, AI, automation)\n\nBy the end of this course, you'll be able to write your own Python programs!"
+              },
+              "is_published": true,
+              "topic_names": ["Python"]
             },
             {
-              "title": "Installing Python",
-              "type": "text",
-              "duration": "10 min",
-              "order": 2,
-              "content": {
-                "text": "# Installing Python\n\nFollow these steps to install Python on your computer:\n\n1. Visit python.org\n2. Download the latest version\n3. Run the installer\n4. Verify installation with `python --version`"
-              }
+              "title": "Installing Python & VS Code",
+              "content_type": "text",
+              "estimated_duration": 10,
+              "order": 1,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>Setting Up Your Python Environment</h1>\n\n<h2>Step 1: Download Python</h2>\n<p>Visit <a href=\"https://python.org/downloads\" target=\"_blank\">python.org/downloads</a> and download Python 3.12 or later.</p>\n\n<h3>Windows Installation</h3>\n<ol>\n<li>Run the installer</li>\n<li><strong>Important:</strong> Check ✅ \"Add Python to PATH\"</li>\n<li>Click \"Install Now\"</li>\n</ol>\n\n<h3>Mac Installation</h3>\n<ol>\n<li>Download the macOS installer</li>\n<li>Run the .pkg file</li>\n<li>Follow the installation wizard</li>\n</ol>\n\n<h2>Step 2: Verify Installation</h2>\n<p>Open Terminal (Mac) or Command Prompt (Windows) and type:</p>\n<pre><code>python --version</code></pre>\n<p>You should see: <code>Python 3.12.x</code></p>\n\n<h2>Step 3: Install VS Code</h2>\n<ol>\n<li>Download from <a href=\"https://code.visualstudio.com\" target=\"_blank\">code.visualstudio.com</a></li>\n<li>Install the Python extension by Microsoft</li>\n<li>Create a new file with <code>.py</code> extension</li>\n</ol>\n\n<h2>Step 4: Test Your Setup</h2>\n<p>Create a file called <code>test.py</code> with this content:</p>\n<pre><code>print(\"Python is working!\")</code></pre>\n<p>Run it with: <code>python test.py</code></p>",
+                "reading_level": "beginner"
+              },
+              "is_published": true,
+              "topic_names": ["Python"]
             },
             {
               "title": "Your First Python Program",
-              "type": "text",
-              "duration": "15 min",
-              "order": 3,
-              "content": {
-                "text": "# Hello World\n\n```python\nprint('Hello, World!')\n```\n\nCongratulations! You've written your first Python program."
-              }
+              "content_type": "text",
+              "estimated_duration": 15,
+              "order": 2,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>Your First Python Program</h1>\n\n<h2>Exercise 1: Hello World</h2>\n<p>Write a program that prints \"Hello, World!\" to the console.</p>\n<pre><code># Exercise 1: Hello World\nprint(\"Hello, World!\")</code></pre>\n\n<h2>Exercise 2: Personal Greeting</h2>\n<p>Modify your program to print a personalized greeting with your name.</p>\n<pre><code># Exercise 2: Personal Greeting\nprint(\"Hello, my name is Alex!\")</code></pre>\n\n<h2>Exercise 3: Multiple Lines</h2>\n<p>Print multiple pieces of information on separate lines:</p>\n<pre><code># Exercise 3: Multiple Lines\nprint(\"Alex\")\nprint(\"Python\")\nprint(\"I want to automate boring tasks!\")</code></pre>\n\n<p><strong>Hint:</strong> Use the print() function for each line.</p>",
+                "reading_level": "beginner"
+              },
+              "is_published": true,
+              "topic_names": ["Python"]
             }
           ]
         },
         {
           "title": "Variables and Data Types",
           "description": "Understanding variables, strings, numbers, and basic data types",
-          "order": 2,
+          "order": 1,
+          "estimated_duration": 55,
+          "is_published": true,
           "lessons": [
             {
               "title": "Variables in Python",
-              "type": "video",
-              "duration": "20 min",
+              "content_type": "video",
+              "estimated_duration": 20,
+              "order": 0,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/cQT33yu9pY8",
+                "video_id": "cQT33yu9pY8",
+                "duration_seconds": 1200,
+                "transcript": "Variables are containers for storing data values.\n\nIn Python, you don't need to declare variable types - Python figures it out automatically!\n\nExamples:\nname = \"John\"      # String\nage = 25           # Integer\nheight = 5.9       # Float\nis_student = True  # Boolean\n\nVariable naming rules:\n• Must start with a letter or underscore\n• Can contain letters, numbers, underscores\n• Case-sensitive (name ≠ Name)\n• Cannot use Python keywords"
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Variables"]
+            },
+            {
+              "title": "Working with Numbers",
+              "content_type": "text",
+              "estimated_duration": 15,
               "order": 1,
-              "content": {
-                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                "description": "Learn how to create and use variables"
-              }
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>Numbers in Python</h1>\n\n<h2>Integer (int)</h2>\n<p>Whole numbers without decimal points:</p>\n<pre><code>age = 25\ncount = -10\nbig_number = 1_000_000  # Underscore for readability</code></pre>\n\n<h2>Float</h2>\n<p>Numbers with decimal points:</p>\n<pre><code>price = 19.99\ntemperature = -5.5\npi = 3.14159</code></pre>\n\n<h2>Arithmetic Operations</h2>\n<table border=\"1\" style=\"border-collapse: collapse; width: 100%;\">\n<tr><th>Operator</th><th>Description</th><th>Example</th><th>Result</th></tr>\n<tr><td>+</td><td>Addition</td><td>5 + 3</td><td>8</td></tr>\n<tr><td>-</td><td>Subtraction</td><td>5 - 3</td><td>2</td></tr>\n<tr><td>*</td><td>Multiplication</td><td>5 * 3</td><td>15</td></tr>\n<tr><td>/</td><td>Division</td><td>5 / 3</td><td>1.666...</td></tr>\n<tr><td>//</td><td>Floor Division</td><td>5 // 3</td><td>1</td></tr>\n<tr><td>%</td><td>Modulus</td><td>5 % 3</td><td>2</td></tr>\n<tr><td>**</td><td>Exponent</td><td>5 ** 3</td><td>125</td></tr>\n</table>\n\n<h2>Useful Functions</h2>\n<pre><code>abs(-5)      # 5 (absolute value)\nround(3.7)   # 4 (round to nearest integer)\nmax(1, 5, 3) # 5 (maximum value)\nmin(1, 5, 3) # 1 (minimum value)</code></pre>",
+                "reading_level": "beginner"
+              },
+              "is_published": true,
+              "topic_names": ["Python"]
             },
             {
-              "title": "Numbers and Strings",
-              "type": "text",
-              "duration": "15 min",
+              "title": "Working with Strings",
+              "content_type": "video",
+              "estimated_duration": 12,
               "order": 2,
-              "content": {
-                "text": "# Numbers and Strings\n\n## Numbers\n```python\nage = 25\nprice = 19.99\n```\n\n## Strings\n```python\nname = 'John'\nmessage = \"Hello World\"\n```"
-              }
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/k9TUPpGqYTo",
+                "video_id": "k9TUPpGqYTo",
+                "duration_seconds": 720,
+                "transcript": "Strings are sequences of characters enclosed in quotes.\n\nCreating strings:\nname = 'John'           # Single quotes\nmessage = \"Hello\"        # Double quotes\nparagraph = '''Multi\nline string'''           # Triple quotes\n\nString operations:\nfull_name = first + \" \" + last  # Concatenation\nrepeat = \"Ha\" * 3               # \"HaHaHa\"\nlength = len(name)              # Get length\n\nString methods:\nname.upper()    # \"JOHN\"\nname.lower()    # \"john\"\nname.title()    # \"John\""
+              },
+              "is_published": true,
+              "topic_names": ["Python"]
             },
             {
-              "title": "Quiz: Variables",
-              "type": "quiz",
-              "duration": "10 min",
+              "title": "Data Types Summary",
+              "content_type": "text",
+              "estimated_duration": 10,
               "order": 3,
-              "content": {
-                "quiz": [
-                  {
-                    "question": "What is a variable?",
-                    "options": ["A container for data", "A type of loop", "A function", "A module"],
-                    "correctAnswer": 0
-                  },
-                  {
-                    "question": "Which is a valid variable name?",
-                    "options": ["1variable", "my-var", "my_variable", "my variable"],
-                    "correctAnswer": 2
-                  }
-                ]
-              }
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>Python Data Types Summary</h1>\n\n<h2>Basic Data Types</h2>\n<table border=\"1\" style=\"border-collapse: collapse; width: 100%;\">\n<tr><th>Type</th><th>Example</th><th>Description</th></tr>\n<tr><td>int</td><td>42</td><td>Integer numbers</td></tr>\n<tr><td>float</td><td>3.14</td><td>Decimal numbers</td></tr>\n<tr><td>str</td><td>\"Hello\"</td><td>Text strings</td></tr>\n<tr><td>bool</td><td>True/False</td><td>Boolean values</td></tr>\n</table>\n\n<h2>Type Checking</h2>\n<pre><code>type(42)       # <class 'int'>\ntype(3.14)     # <class 'float'>\ntype(\"Hello\")  # <class 'str'>\ntype(True)     # <class 'bool'></code></pre>\n\n<h2>Type Conversion</h2>\n<pre><code>int(\"42\")      # 42 (string to int)\nfloat(\"3.14\")  # 3.14 (string to float)\nstr(42)        # \"42\" (int to string)\nbool(1)        # True (int to bool)</code></pre>",
+                "reading_level": "beginner"
+              },
+              "is_published": true,
+              "topic_names": ["Python"]
             }
           ]
         },
         {
           "title": "Control Flow",
           "description": "If statements, loops, and program flow control",
-          "order": 3,
+          "order": 2,
+          "estimated_duration": 60,
+          "is_published": true,
           "lessons": [
             {
               "title": "If Statements",
-              "type": "text",
-              "duration": "20 min",
-              "order": 1,
-              "content": {
-                "text": "# If Statements\n\n```python\nage = 18\nif age >= 18:\n    print('Adult')\nelse:\n    print('Minor')\n```"
-              }
+              "content_type": "video",
+              "estimated_duration": 18,
+              "order": 0,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/Zp5MuPOtsSY",
+                "video_id": "Zp5MuPOtsSY",
+                "duration_seconds": 1080,
+                "transcript": "Conditional statements let you make decisions in your code.\n\nBasic if statement:\nif age >= 18:\n    print(\"You are an adult\")\n\nif-else:\nif age >= 18:\n    print(\"Adult\")\nelse:\n    print(\"Minor\")\n\nif-elif-else:\nif score >= 90:\n    grade = \"A\"\nelif score >= 80:\n    grade = \"B\"\nelif score >= 70:\n    grade = \"C\"\nelse:\n    grade = \"F\"\n\nComparison operators: ==, !=, <, >, <=, >=\nLogical operators: and, or, not"
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Algorithms", "Control Flow"]
             },
             {
-              "title": "Loops",
-              "type": "video",
-              "duration": "25 min",
+              "title": "For Loops",
+              "content_type": "video",
+              "estimated_duration": 20,
+              "order": 1,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/6iF8Xb7Z3wQ",
+                "video_id": "6iF8Xb7Z3wQ",
+                "duration_seconds": 1200,
+                "transcript": "For loops let you repeat code for each item in a sequence.\n\nLooping through a range:\nfor i in range(5):\n    print(i)  # Prints 0, 1, 2, 3, 4\n\nLooping through a list:\nfruits = [\"apple\", \"banana\", \"cherry\"]\nfor fruit in fruits:\n    print(fruit)\n\nLooping with index:\nfor i, fruit in enumerate(fruits):\n    print(f\"{i}: {fruit}\")\n\nRange variations:\nrange(5)        # 0, 1, 2, 3, 4\nrange(2, 5)     # 2, 3, 4\nrange(0, 10, 2) # 0, 2, 4, 6, 8"
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Algorithms"]
+            },
+            {
+              "title": "While Loops",
+              "content_type": "text",
+              "estimated_duration": 12,
               "order": 2,
-              "content": {
-                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                "description": "For loops and while loops in Python"
-              }
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>While Loops in Python</h1>\n\n<p>While loops repeat code as long as a condition is true.</p>\n\n<h2>Basic While Loop</h2>\n<pre><code>count = 0\nwhile count < 5:\n    print(count)\n    count += 1\n# Output: 0, 1, 2, 3, 4</code></pre>\n\n<h2>User Input Loop</h2>\n<pre><code>while True:\n    answer = input(\"Continue? (yes/no): \")\n    if answer.lower() == \"no\":\n        break\n    print(\"Continuing...\")</code></pre>\n\n<h2>Loop Control</h2>\n<h3>break - Exit the loop entirely</h3>\n<pre><code>for i in range(10):\n    if i == 5:\n        break\n    print(i)  # Prints 0, 1, 2, 3, 4</code></pre>\n\n<h3>continue - Skip to next iteration</h3>\n<pre><code>for i in range(5):\n    if i == 2:\n        continue\n    print(i)  # Prints 0, 1, 3, 4</code></pre>",
+                "reading_level": "beginner"
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Algorithms"]
+            },
+            {
+              "title": "FizzBuzz Challenge",
+              "content_type": "text",
+              "estimated_duration": 10,
+              "order": 3,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>FizzBuzz Challenge</h1>\n\n<p>FizzBuzz is a classic programming challenge!</p>\n\n<h2>The Problem</h2>\n<p>Write a program that prints numbers from 1 to 20, but:</p>\n<ul>\n<li>For multiples of 3, print \"Fizz\" instead</li>\n<li>For multiples of 5, print \"Buzz\" instead</li>\n<li>For multiples of both 3 and 5, print \"FizzBuzz\"</li>\n</ul>\n\n<h2>Solution</h2>\n<pre><code>for i in range(1, 21):\n    if i % 3 == 0 and i % 5 == 0:\n        print(\"FizzBuzz\")\n    elif i % 3 == 0:\n        print(\"Fizz\")\n    elif i % 5 == 0:\n        print(\"Buzz\")\n    else:\n        print(i)</code></pre>\n\n<h2>Expected Output</h2>\n<pre><code>1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, Buzz, 11, Fizz, 13, 14, FizzBuzz, 16, 17, Fizz, 19, Buzz</code></pre>\n\n<p><strong>Hint:</strong> Use the modulo operator (%) to check divisibility.</p>",
+                "reading_level": "beginner"
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Algorithms"]
             }
           ]
         }
@@ -126,9 +199,9 @@
       "title": "Web Development with React",
       "description": "Build modern web applications with React. Learn components, hooks, state management, and best practices.",
       "instructor_email": "instructor1@example.com",
-      "thumbnail": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
-      "duration": "15 hours",
-      "level": "intermediate",
+      "cover_image": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
+      "est_duration": 900,
+      "difficulty_level": "intermediate",
       "category_name": "Web Development",
       "is_published": true,
       "rating": 4.7,
@@ -137,52 +210,102 @@
         {
           "title": "React Fundamentals",
           "description": "Core concepts of React",
-          "order": 1,
+          "order": 0,
+          "estimated_duration": 60,
+          "is_published": true,
           "lessons": [
             {
               "title": "What is React?",
-              "type": "video",
-              "duration": "20 min",
-              "order": 1,
-              "content": {
-                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                "description": "Introduction to React library"
-              }
+              "content_type": "video",
+              "estimated_duration": 20,
+              "order": 0,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/Tn6-PIqc4UM",
+                "video_id": "Tn6-PIqc4UM",
+                "duration_seconds": 1200,
+                "transcript": "React is a JavaScript library for building user interfaces, created by Facebook.\n\nKey features:\n• Component-based architecture\n• Virtual DOM for performance\n• Declarative programming style\n• One-way data flow\n• Large ecosystem (React Router, Redux, etc.)\n\nReact lets you build encapsulated components that manage their own state, then compose them to make complex UIs."
+              },
+              "is_published": true,
+              "topic_names": ["JavaScript", "React", "Frontend", "Web Development"]
             },
             {
-              "title": "Components",
-              "type": "text",
-              "duration": "25 min",
+              "title": "Components and JSX",
+              "content_type": "text",
+              "estimated_duration": 25,
+              "order": 1,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>React Components & JSX</h1>\n\n<h2>What is JSX?</h2>\n<p>JSX is a syntax extension that looks like HTML but works inside JavaScript:</p>\n<pre><code>const element = &lt;h1&gt;Hello, World!&lt;/h1&gt;;</code></pre>\n\n<h2>Function Components</h2>\n<p>The simplest way to define a React component:</p>\n<pre><code>function Welcome(props) {\n  return &lt;h1&gt;Hello, {props.name}!&lt;/h1&gt;;\n}\n\n// With destructuring\nfunction Welcome({ name }) {\n  return &lt;h1&gt;Hello, {name}!&lt;/h1&gt;;\n}</code></pre>\n\n<h2>Using Components</h2>\n<pre><code>function App() {\n  return (\n    &lt;div&gt;\n      &lt;Welcome name=\"Alice\" /&gt;\n      &lt;Welcome name=\"Bob\" /&gt;\n    &lt;/div&gt;\n  );\n}</code></pre>",
+                "reading_level": "intermediate"
+              },
+              "is_published": true,
+              "topic_names": ["JavaScript", "React"]
+            },
+            {
+              "title": "Props and State",
+              "content_type": "video",
+              "estimated_duration": 30,
               "order": 2,
-              "content": {
-                "text": "# React Components\n\n```jsx\nfunction Welcome({ name }) {\n  return <h1>Hello, {name}!</h1>;\n}\n```"
-              }
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/IYvD9oBCuJI",
+                "video_id": "IYvD9oBCuJI",
+                "duration_seconds": 1800,
+                "transcript": "Props and State are fundamental concepts in React.\n\nPROPS (Properties):\n• Passed from parent to child\n• Read-only (immutable)\n• Used to configure components\n\nSTATE:\n• Managed within the component\n• Can be changed (mutable)\n• Changes trigger re-renders"
+              },
+              "is_published": true,
+              "topic_names": ["JavaScript", "React"]
             }
           ]
         },
         {
-          "title": "Hooks",
-          "description": "React Hooks for state and effects",
-          "order": 2,
+          "title": "React Hooks",
+          "description": "Modern React with Hooks",
+          "order": 1,
+          "estimated_duration": 75,
+          "is_published": true,
           "lessons": [
             {
               "title": "useState Hook",
-              "type": "video",
-              "duration": "30 min",
-              "order": 1,
-              "content": {
-                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                "description": "Managing state with useState"
-              }
+              "content_type": "video",
+              "estimated_duration": 25,
+              "order": 0,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/O6P86uwfdR0",
+                "video_id": "O6P86uwfdR0",
+                "duration_seconds": 1500,
+                "transcript": "useState is the most common React Hook for managing state.\n\nBasic usage:\nconst [count, setCount] = useState(0);\n\nUpdating state:\nsetCount(5);           // Set to specific value\nsetCount(prev => prev + 1);  // Based on previous"
+              },
+              "is_published": true,
+              "topic_names": ["JavaScript", "React"]
             },
             {
               "title": "useEffect Hook",
-              "type": "text",
-              "duration": "25 min",
+              "content_type": "text",
+              "estimated_duration": 25,
+              "order": 1,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>useEffect Hook</h1>\n\n<p>useEffect lets you perform side effects in function components.</p>\n\n<h2>Basic Syntax</h2>\n<pre><code>useEffect(() => {\n  // Effect code here\n  return () => {\n    // Cleanup code (optional)\n  };\n}, [dependencies]);</code></pre>\n\n<h2>Dependency Array Patterns</h2>\n<pre><code>// Runs after every render\nuseEffect(() => { });\n\n// Runs once on mount\nuseEffect(() => { }, []);\n\n// Runs when count changes\nuseEffect(() => { }, [count]);</code></pre>",
+                "reading_level": "intermediate"
+              },
+              "is_published": true,
+              "topic_names": ["JavaScript", "React"]
+            },
+            {
+              "title": "Building a Counter App",
+              "content_type": "text",
+              "estimated_duration": 25,
               "order": 2,
-              "content": {
-                "text": "# useEffect Hook\n\n```jsx\nuseEffect(() => {\n  document.title = `Count: ${count}`;\n}, [count]);\n```"
-              }
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>Building a Counter App</h1>\n\n<h2>Requirements</h2>\n<ul>\n<li>Display the current count</li>\n<li>Increment button (+1)</li>\n<li>Decrement button (-1)</li>\n<li>Reset button (back to 0)</li>\n</ul>\n\n<h2>Solution</h2>\n<pre><code>import { useState, useEffect } from 'react';\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n  \n  useEffect(() => {\n    document.title = `Count: ${count}`;\n  }, [count]);\n  \n  const increment = () => setCount(prev => prev + 1);\n  const decrement = () => setCount(prev => Math.max(0, prev - 1));\n  const reset = () => setCount(0);\n  \n  return (\n    &lt;div className=\"counter\"&gt;\n      &lt;h1&gt;Count: {count}&lt;/h1&gt;\n      &lt;button onClick={decrement}&gt;-&lt;/button&gt;\n      &lt;button onClick={reset}&gt;Reset&lt;/button&gt;\n      &lt;button onClick={increment}&gt;+&lt;/button&gt;\n    &lt;/div&gt;\n  );\n}</code></pre>",
+                "reading_level": "intermediate"
+              },
+              "is_published": true,
+              "topic_names": ["JavaScript", "React"]
             }
           ]
         }
@@ -190,11 +313,11 @@
     },
     {
       "title": "Introduction to Machine Learning",
-      "description": "Start your journey into machine learning. Learn algorithms, model training, and practical applications.",
-      "instructor_email": "instructor1@example.com",
-      "thumbnail": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800",
-      "duration": "20 hours",
-      "level": "intermediate",
+      "description": "Start your journey into machine learning. Learn algorithms, model training, and practical applications with Python.",
+      "instructor_email": "instructor2@example.com",
+      "cover_image": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800",
+      "est_duration": 1200,
+      "difficulty_level": "intermediate",
       "category_name": "Data Science",
       "is_published": true,
       "rating": 4.9,
@@ -203,26 +326,165 @@
         {
           "title": "ML Fundamentals",
           "description": "Core concepts of machine learning",
-          "order": 1,
+          "order": 0,
+          "estimated_duration": 90,
+          "is_published": true,
           "lessons": [
             {
               "title": "What is Machine Learning?",
-              "type": "video",
-              "duration": "25 min",
-              "order": 1,
-              "content": {
-                "videoUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
-                "description": "Introduction to ML concepts"
-              }
+              "content_type": "video",
+              "estimated_duration": 25,
+              "order": 0,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/ukzFI9rgwfU",
+                "video_id": "ukzFI9rgwfU",
+                "duration_seconds": 1500,
+                "transcript": "Machine Learning is a subset of AI that enables computers to learn from data without being explicitly programmed."
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Machine Learning"]
             },
             {
-              "title": "Types of ML",
-              "type": "text",
-              "duration": "20 min",
+              "title": "Types of Machine Learning",
+              "content_type": "text",
+              "estimated_duration": 20,
+              "order": 1,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>Types of Machine Learning</h1>\n\n<h2>1. Supervised Learning</h2>\n<p>Learning from labeled data where we know the correct answers.</p>\n\n<h2>2. Unsupervised Learning</h2>\n<p>Finding patterns in unlabeled data.</p>\n\n<h2>3. Reinforcement Learning</h2>\n<p>Learning through trial and error with rewards and penalties.</p>",
+                "reading_level": "intermediate"
+              },
+              "is_published": true,
+              "topic_names": ["Machine Learning"]
+            },
+            {
+              "title": "Python ML Libraries Overview",
+              "content_type": "document",
+              "estimated_duration": 15,
               "order": 2,
-              "content": {
-                "text": "# Types of Machine Learning\n\n1. **Supervised Learning** - Learning from labeled data\n2. **Unsupervised Learning** - Finding patterns in unlabeled data\n3. **Reinforcement Learning** - Learning through rewards"
-              }
+              "content": "",
+              "content_data": {
+                "document_url": "https://scikit-learn.org/stable/tutorial/basic/tutorial.html",
+                "file_type": "html",
+                "preview_images": []
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Machine Learning", "Data Analysis"]
+            },
+            {
+              "title": "ML Industry Trends",
+              "content_type": "text",
+              "estimated_duration": 30,
+              "order": 3,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>ML Industry Trends</h1>\n\n<h2>1. Large Language Models (LLMs)</h2>\n<p>GPT, Claude, and their applications for text generation and understanding.</p>\n\n<h2>2. AutoML</h2>\n<p>Automated model selection and hyperparameter tuning.</p>\n\n<h2>3. Edge ML</h2>\n<p>Running models on mobile devices with TensorFlow Lite and Core ML.</p>\n\n<h2>4. Ethical AI</h2>\n<p>Bias detection, explainable AI, and responsible development.</p>\n\n<h2>5. MLOps</h2>\n<p>Model deployment, monitoring, and CI/CD for ML pipelines.</p>",
+                "reading_level": "intermediate"
+              },
+              "is_published": true,
+              "topic_names": ["Machine Learning"]
+            }
+          ]
+        },
+        {
+          "title": "Your First ML Model",
+          "description": "Hands-on machine learning with scikit-learn",
+          "order": 1,
+          "estimated_duration": 120,
+          "is_published": true,
+          "lessons": [
+            {
+              "title": "Linear Regression",
+              "content_type": "video",
+              "estimated_duration": 35,
+              "order": 0,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/nk2CQITm_eo",
+                "video_id": "nk2CQITm_eo",
+                "duration_seconds": 2100,
+                "transcript": "Linear Regression predicts continuous values using linear relationships."
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Machine Learning"]
+            },
+            {
+              "title": "House Price Prediction",
+              "content_type": "text",
+              "estimated_duration": 30,
+              "order": 1,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>House Price Prediction</h1>\n\n<h2>The Problem</h2>\n<p>Build a simple house price predictor using Linear Regression.</p>\n\n<h2>Data</h2>\n<pre><code>sizes = [1000, 1200, 1400, 1600, 1800, 2000]\nprices = [200000, 240000, 280000, 320000, 360000, 400000]</code></pre>\n\n<h2>Solution</h2>\n<pre><code>import numpy as np\nfrom sklearn.linear_model import LinearRegression\n\nX = np.array(sizes).reshape(-1, 1)\ny = np.array(prices)\n\nmodel = LinearRegression()\nmodel.fit(X, y)\n\n# Predict price for 1500 sq ft house\nprediction = model.predict([[1500]])\nprint(f\"Price: ${prediction[0]:,.0f}\")</code></pre>",
+                "reading_level": "intermediate"
+              },
+              "is_published": true,
+              "topic_names": ["Python", "Machine Learning"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "SQL Database Fundamentals",
+      "description": "Master SQL queries and database management. Learn to create, read, update, and delete data effectively.",
+      "instructor_email": "instructor2@example.com",
+      "cover_image": "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=800",
+      "est_duration": 480,
+      "difficulty_level": "beginner",
+      "category_name": "Programming",
+      "is_published": true,
+      "rating": 4.6,
+      "students_count": 750,
+      "modules": [
+        {
+          "title": "SQL Basics",
+          "description": "Introduction to SQL and basic queries",
+          "order": 0,
+          "estimated_duration": 60,
+          "is_published": true,
+          "lessons": [
+            {
+              "title": "Introduction to Databases",
+              "content_type": "video",
+              "estimated_duration": 15,
+              "order": 0,
+              "content": "",
+              "content_data": {
+                "video_url": "https://www.youtube.com/embed/HXV3zeQKqGY",
+                "video_id": "HXV3zeQKqGY",
+                "duration_seconds": 900,
+                "transcript": "A database is an organized collection of data stored electronically."
+              },
+              "is_published": true,
+              "topic_names": ["SQL", "Data Analysis", "Databases"]
+            },
+            {
+              "title": "SELECT Queries",
+              "content_type": "text",
+              "estimated_duration": 20,
+              "order": 1,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>SELECT Statements</h1>\n\n<p>SELECT retrieves data from one or more tables.</p>\n\n<h2>Basic Syntax</h2>\n<pre><code>SELECT column1, column2\nFROM table_name;</code></pre>\n\n<h2>Select All Columns</h2>\n<pre><code>SELECT * FROM users;</code></pre>\n\n<h2>WHERE Clause</h2>\n<pre><code>SELECT * FROM users WHERE status = 'active';</code></pre>\n\n<h2>ORDER BY</h2>\n<pre><code>SELECT * FROM products ORDER BY price DESC;</code></pre>",
+                "reading_level": "beginner"
+              },
+              "is_published": true,
+              "topic_names": ["SQL", "Databases"]
+            },
+            {
+              "title": "SQL Query Examples",
+              "content_type": "text",
+              "estimated_duration": 25,
+              "order": 2,
+              "content": "",
+              "content_data": {
+                "main_content": "<h1>SQL Query Examples</h1>\n\n<h2>Given Table: employees</h2>\n<p>Columns: id, first_name, last_name, email, department, salary, hire_date</p>\n\n<h2>Common Queries</h2>\n\n<h3>1. Select all employees</h3>\n<pre><code>SELECT * FROM employees;</code></pre>\n\n<h3>2. Select names and emails</h3>\n<pre><code>SELECT first_name, last_name, email FROM employees;</code></pre>\n\n<h3>3. Filter by department</h3>\n<pre><code>SELECT * FROM employees WHERE department = 'Engineering';</code></pre>\n\n<h3>4. Top 5 highest paid</h3>\n<pre><code>SELECT * FROM employees ORDER BY salary DESC LIMIT 5;</code></pre>\n\n<h3>5. Count by department</h3>\n<pre><code>SELECT department, COUNT(*) as count\nFROM employees\nGROUP BY department;</code></pre>",
+                "reading_level": "beginner"
+              },
+              "is_published": true,
+              "topic_names": ["SQL", "Databases"]
             }
           ]
         }

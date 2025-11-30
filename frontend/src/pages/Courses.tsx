@@ -59,9 +59,9 @@ export default function Courses() {
     const matchesSearch =
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase());
+      (course.instructor_name || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
-    const matchesLevel = selectedLevel === 'All' || course.level === selectedLevel;
+    const matchesLevel = selectedLevel === 'All' || course.difficulty_level === selectedLevel.toLowerCase();
     return matchesSearch && matchesCategory && matchesLevel;
   });
 
@@ -70,10 +70,11 @@ export default function Courses() {
   const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
   const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Beginner': return 'success';
-      case 'Intermediate': return 'warning';
-      case 'Advanced': return 'error';
+    switch (level.toLowerCase()) {
+      case 'beginner': return 'success';
+      case 'intermediate': return 'warning';
+      case 'advanced': return 'error';
+      case 'expert': return 'error';
       default: return 'default';
     }
   };
@@ -214,7 +215,7 @@ export default function Courses() {
                     <CardMedia
                       component="img"
                       height="160"
-                      image={course.thumbnail}
+                      image={course.cover_image || 'https://via.placeholder.com/320x160?text=No+Image'}
                       alt={course.title}
                     />
                     {isEnrolled(course.id) && (
@@ -226,10 +227,10 @@ export default function Courses() {
                       />
                     )}
                     <Chip
-                      label={course.level}
+                      label={course.difficulty_level}
                       size="small"
-                      color={getLevelColor(course.level) as 'success' | 'warning' | 'error' | 'default'}
-                      sx={{ position: 'absolute', top: 8, right: 8 }}
+                      color={getLevelColor(course.difficulty_level) as 'success' | 'warning' | 'error' | 'default'}
+                      sx={{ position: 'absolute', top: 8, right: 8, textTransform: 'capitalize' }}
                     />
                   </Box>
                   <CardContent sx={{ flexGrow: 1 }}>
@@ -242,11 +243,11 @@ export default function Courses() {
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                       <Avatar
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor}`}
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor_name}`}
                         sx={{ width: 24, height: 24 }}
                       />
                       <Typography variant="body2" color="text.secondary">
-                        {course.instructor}
+                        {course.instructor_name}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -254,13 +255,13 @@ export default function Courses() {
                         <StarIcon sx={{ fontSize: 18, color: 'warning.main' }} />
                         <Typography variant="body2" fontWeight={500}>{course.rating}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          ({course.studentsCount.toLocaleString()})
+                          ({course.students_count.toLocaleString()})
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                         <Typography variant="caption" color="text.secondary">
-                          {course.duration}
+                          {Math.floor(course.est_duration / 60)}h {course.est_duration % 60}m
                         </Typography>
                       </Box>
                     </Box>

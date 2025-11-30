@@ -1,0 +1,105 @@
+{
+  "table": "topics",
+  "data": [
+    {
+      "name": "Python",
+      "slug": "python",
+      "description": "Python programming language"
+    },
+    {
+      "name": "JavaScript",
+      "slug": "javascript",
+      "description": "JavaScript programming language"
+    },
+    {
+      "name": "React",
+      "slug": "react",
+      "description": "React JavaScript library for building UIs"
+    },
+    {
+      "name": "Machine Learning",
+      "slug": "machine-learning",
+      "description": "Machine learning algorithms and techniques"
+    },
+    {
+      "name": "Data Analysis",
+      "slug": "data-analysis",
+      "description": "Data analysis and visualization"
+    },
+    {
+      "name": "SQL",
+      "slug": "sql",
+      "description": "SQL database querying language"
+    },
+    {
+      "name": "HTML/CSS",
+      "slug": "html-css",
+      "description": "Web markup and styling"
+    },
+    {
+      "name": "Algorithms",
+      "slug": "algorithms",
+      "description": "Computer science algorithms"
+    },
+    {
+      "name": "API Development",
+      "slug": "api-development",
+      "description": "Building and consuming APIs"
+    },
+    {
+      "name": "TypeScript",
+      "slug": "typescript",
+      "description": "TypeScript programming language"
+    },
+    {
+      "name": "Variables",
+      "slug": "variables",
+      "description": "Programming variables and data types"
+    },
+    {
+      "name": "Functions",
+      "slug": "functions",
+      "description": "Functions and methods in programming"
+    },
+    {
+      "name": "OOP",
+      "slug": "oop",
+      "description": "Object-Oriented Programming concepts"
+    },
+    {
+      "name": "Control Flow",
+      "slug": "control-flow",
+      "description": "Conditionals, loops, and program flow"
+    },
+    {
+      "name": "Data Structures",
+      "slug": "data-structures",
+      "description": "Lists, arrays, dictionaries, and more"
+    },
+    {
+      "name": "Web Development",
+      "slug": "web-development",
+      "description": "Building web applications"
+    },
+    {
+      "name": "Backend",
+      "slug": "backend",
+      "description": "Server-side development"
+    },
+    {
+      "name": "Frontend",
+      "slug": "frontend",
+      "description": "Client-side development"
+    },
+    {
+      "name": "Databases",
+      "slug": "databases",
+      "description": "Database design and management"
+    },
+    {
+      "name": "Testing",
+      "slug": "testing",
+      "description": "Software testing and quality assurance"
+    }
+  ]
+}

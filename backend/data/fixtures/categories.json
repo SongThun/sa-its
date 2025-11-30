@@ -3,28 +3,23 @@
   "data": [
     {
       "name": "Programming",
-      "description": "Learn programming languages and software development",
-      "icon": "code"
+      "description": "Learn programming languages and software development"
     },
     {
       "name": "Data Science",
-      "description": "Data analysis, machine learning, and AI",
-      "icon": "analytics"
+      "description": "Data analysis, machine learning, and AI"
     },
     {
       "name": "Web Development",
-      "description": "Frontend and backend web technologies",
-      "icon": "web"
+      "description": "Frontend and backend web technologies"
     },
     {
       "name": "Mathematics",
-      "description": "Mathematical concepts and problem solving",
-      "icon": "functions"
+      "description": "Mathematical concepts and problem solving"
     },
     {
       "name": "Design",
-      "description": "UI/UX design and graphic design",
-      "icon": "design_services"
+      "description": "UI/UX design and graphic design"
     }
   ]
 }

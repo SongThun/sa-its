@@ -12,7 +12,7 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "fullname", "created_at"]
+        fields = ["id", "username", "email", "fullname", "role", "created_at"]
         read_only_fields = ["id", "created_at"]
 
 
@@ -22,6 +22,9 @@ class UserRegistrationSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, required=True)
     password_confirm = serializers.CharField(write_only=True, required=True)
     fullname = serializers.CharField(max_length=255, required=False, default="")
+    role = serializers.ChoiceField(
+        choices=["student", "instructor", "admin"], default="student", required=False
+    )
 
     def validate_email(self, value):
         return value.strip().lower()
@@ -46,10 +49,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "fullname",
+            "role",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "username", "email", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "username",
+            "email",
+            "role",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class ResetPasswordSerializer(serializers.Serializer):

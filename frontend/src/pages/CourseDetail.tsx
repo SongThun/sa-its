@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -32,7 +32,6 @@ import {
   Lock as LockIcon,
   PlayCircle as PlayIcon,
   Article as ArticleIcon,
-  Quiz as QuizIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   ArrowForward as ArrowIcon,
@@ -40,6 +39,7 @@ import {
   MenuBook as ModuleIcon,
   PhoneAndroid as MobileIcon,
   EmojiEvents as CertificateIcon,
+  Description as DocumentIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { courseApi, enrollmentApi } from '../services/api';
@@ -47,27 +47,63 @@ import type { Course, EnrollmentProgress } from '../types';
 
 export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
-  const { user, isAuthenticated, refreshUser } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [course, setCourse] = useState<Course | null>(null);
   const [progress, setProgress] = useState<EnrollmentProgress | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentChecked, setEnrollmentChecked] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
-
-  const isEnrolled = user?.enrolledCourses.includes(courseId || '') || false;
 
   useEffect(() => {
     loadCourse();
+    if (isAuthenticated && courseId) {
+      checkEnrollmentStatus();
+    } else {
+      setEnrollmentChecked(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId]);
+  }, [courseId, isAuthenticated]);
+
+  // Handle auto-enroll when returning from login with action=enroll
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'enroll' && isAuthenticated && enrollmentChecked && courseId) {
+      // Clear the action param from URL
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+      // Trigger enrollment only if not already enrolled
+      if (!isEnrolled && !isEnrolling) {
+        handleEnrollAfterLogin();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isEnrolled, enrollmentChecked, searchParams]);
+
+  const handleEnrollAfterLogin = async () => {
+    if (!courseId) return;
+    setIsEnrolling(true);
+    try {
+      const success = await enrollmentApi.enrollInCourse(courseId);
+      if (success) {
+        setIsEnrolled(true);
+      }
+    } catch (error) {
+      console.error('Failed to enroll:', error);
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
 
   useEffect(() => {
-    if (isEnrolled && user && courseId) {
+    if (isEnrolled && courseId) {
       loadProgress();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEnrolled, user, courseId]);
+  }, [isEnrolled, courseId]);
 
   const loadCourse = async () => {
     if (!courseId) return;
@@ -75,7 +111,7 @@ export default function CourseDetail() {
     try {
       const courseData = await courseApi.getCourseById(courseId);
       setCourse(courseData);
-      if (courseData?.modules.length) {
+      if (courseData?.modules?.length) {
         setExpandedModules(new Set([courseData.modules[0].id]));
       }
     } catch (error) {
@@ -85,10 +121,22 @@ export default function CourseDetail() {
     }
   };
 
-  const loadProgress = async () => {
-    if (!user || !courseId) return;
+  const checkEnrollmentStatus = async () => {
+    if (!courseId) return;
     try {
-      const progressData = await enrollmentApi.getCourseProgress(user.id, courseId);
+      const enrolled = await enrollmentApi.isEnrolled(courseId);
+      setIsEnrolled(enrolled);
+    } catch (error) {
+      console.error('Failed to check enrollment:', error);
+    } finally {
+      setEnrollmentChecked(true);
+    }
+  };
+
+  const loadProgress = async () => {
+    if (!courseId) return;
+    try {
+      const progressData = await enrollmentApi.getCourseProgress(courseId);
       setProgress(progressData);
     } catch (error) {
       console.error('Failed to load progress:', error);
@@ -97,14 +145,16 @@ export default function CourseDetail() {
 
   const handleEnroll = async () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate(`/login?redirect=${encodeURIComponent(`/course/${courseId}`)}&action=enroll`);
       return;
     }
-    if (!user || !courseId) return;
+    if (!courseId) return;
     setIsEnrolling(true);
     try {
-      await enrollmentApi.enrollInCourse(user.id, courseId);
-      refreshUser();
+      const success = await enrollmentApi.enrollInCourse(courseId);
+      if (success) {
+        setIsEnrolled(true);
+      }
     } catch (error) {
       console.error('Failed to enroll:', error);
     } finally {
@@ -113,12 +163,14 @@ export default function CourseDetail() {
   };
 
   const handleUnenroll = async () => {
-    if (!user || !courseId) return;
+    if (!isAuthenticated || !courseId) return;
     setIsEnrolling(true);
     try {
-      await enrollmentApi.unenrollFromCourse(user.id, courseId);
-      refreshUser();
-      setProgress(null);
+      const success = await enrollmentApi.unenrollFromCourse(courseId);
+      if (success) {
+        setIsEnrolled(false);
+        setProgress(null);
+      }
     } catch (error) {
       console.error('Failed to unenroll:', error);
     } finally {
@@ -137,18 +189,18 @@ export default function CourseDetail() {
   };
 
   const isLessonCompleted = (lessonId: string) => {
-    return progress?.completedLessons.includes(lessonId) || false;
+    return progress?.completedLessons?.includes(lessonId) || false;
   };
 
   const getTotalLessons = () => {
-    return course?.modules.reduce((acc, module) => acc + module.lessons.length, 0) || 0;
+    return course?.modules?.reduce((acc, module) => acc + (module.lessons?.length || 0), 0) || 0;
   };
 
   const getLessonIcon = (type: string) => {
     switch (type) {
       case 'video': return <VideoIcon sx={{ fontSize: 20 }} />;
       case 'text': return <ArticleIcon sx={{ fontSize: 20 }} />;
-      case 'quiz': return <QuizIcon sx={{ fontSize: 20 }} />;
+      case 'document': return <DocumentIcon sx={{ fontSize: 20 }} />;
       default: return <PlayIcon sx={{ fontSize: 20 }} />;
     }
   };
@@ -196,12 +248,12 @@ export default function CourseDetail() {
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                 <Avatar
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor}`}
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${course.instructor_name}`}
                   sx={{ width: 48, height: 48 }}
                 />
                 <Box>
                   <Typography variant="caption" sx={{ opacity: 0.7 }}>Instructor</Typography>
-                  <Typography variant="body1" fontWeight={500}>{course.instructor}</Typography>
+                  <Typography variant="body1" fontWeight={500}>{course.instructor_name}</Typography>
                 </Box>
               </Box>
 
@@ -213,17 +265,17 @@ export default function CourseDetail() {
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <PeopleIcon />
-                  <Typography variant="body1" fontWeight={500}>{course.studentsCount.toLocaleString()}</Typography>
+                  <Typography variant="body1" fontWeight={500}>{course.students_count.toLocaleString()}</Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>Students</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <TimeIcon />
-                  <Typography variant="body1" fontWeight={500}>{course.duration}</Typography>
+                  <Typography variant="body1" fontWeight={500}>{Math.floor(course.est_duration / 60)}h {course.est_duration % 60}m</Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>Duration</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <LevelIcon />
-                  <Typography variant="body1" fontWeight={500}>{course.level}</Typography>
+                  <Typography variant="body1" fontWeight={500} sx={{ textTransform: 'capitalize' }}>{course.difficulty_level}</Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>Level</Typography>
                 </Box>
               </Stack>
@@ -234,7 +286,7 @@ export default function CourseDetail() {
                 <CardMedia
                   component="img"
                   height="180"
-                  image={course.thumbnail}
+                  image={course.cover_image || 'https://via.placeholder.com/400x180?text=No+Image'}
                   alt={course.title}
                 />
                 <CardContent>
@@ -249,19 +301,19 @@ export default function CourseDetail() {
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                             <Typography variant="body2">Progress</Typography>
                             <Typography variant="body2" fontWeight={500}>
-                              {progress.progress}% ({progress.completedLessons.length}/{getTotalLessons()} lessons)
+                              {Math.round(progress.progress)}% ({progress.completedLessons?.length || 0}/{getTotalLessons()} lessons)
                             </Typography>
                           </Box>
                           <LinearProgress
                             variant="determinate"
-                            value={progress.progress}
+                            value={Math.round(progress.progress)}
                             sx={{ height: 10, borderRadius: 5 }}
                           />
                         </Box>
                       )}
                       <Button
                         component={RouterLink}
-                        to={`/course/${courseId}/lesson/${course.modules[0]?.lessons[0]?.id}`}
+                        to={`/course/${courseId}/lesson/${course.modules?.[0]?.lessons?.[0]?.id || ''}`}
                         variant="contained"
                         fullWidth
                         size="large"
@@ -281,12 +333,6 @@ export default function CourseDetail() {
                     </>
                   ) : (
                     <>
-                      <Box sx={{ mb: 3 }}>
-                        <Typography variant="h4" fontWeight={700} color="primary">Free</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Full access to all content
-                        </Typography>
-                      </Box>
                       <Button
                         onClick={handleEnroll}
                         variant="contained"
@@ -331,13 +377,13 @@ export default function CourseDetail() {
             Course Content
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {course.modules.length} modules • {getTotalLessons()} lessons • {course.duration}
+            {course.modules?.length || 0} modules • {getTotalLessons()} lessons • {Math.floor(course.est_duration / 60)}h {course.est_duration % 60}m
           </Typography>
         </Box>
 
         <Paper variant="outlined">
           <List disablePadding>
-            {course.modules.map((module, moduleIndex) => (
+            {(course.modules || []).map((module, moduleIndex) => (
               <Box key={module.id}>
                 {moduleIndex > 0 && <Divider />}
                 <ListItemButton onClick={() => toggleModule(module.id)} sx={{ py: 2 }}>
@@ -350,13 +396,13 @@ export default function CourseDetail() {
                     primary={<Typography fontWeight={600}>{module.title}</Typography>}
                     secondary={module.description}
                   />
-                  <Chip label={`${module.lessons.length} lessons`} size="small" sx={{ mr: 2 }} />
+                  <Chip label={`${module.lessons?.length || 0} lessons`} size="small" sx={{ mr: 2 }} />
                   {expandedModules.has(module.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 </ListItemButton>
 
                 <Collapse in={expandedModules.has(module.id)} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding sx={{ bgcolor: 'background.default' }}>
-                    {module.lessons.map((lesson, lessonIndex) => (
+                    {(module.lessons || []).map((lesson, lessonIndex) => (
                       <ListItem
                         key={lesson.id}
                         disablePadding
@@ -380,29 +426,35 @@ export default function CourseDetail() {
                             <ListItemText
                               primary={lesson.title}
                               secondary={
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  {getLessonIcon(lesson.type)}
-                                  <Typography variant="caption">{lesson.duration}</Typography>
-                                </Stack>
+                                <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                  {getLessonIcon(lesson.content_type)}
+                                  <Typography variant="caption" component="span">{lesson.estimated_duration} min</Typography>
+                                  {lesson.topics?.map((topic) => (
+                                    <Chip key={topic.id} label={topic.name} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                  ))}
+                                </Box>
                               }
                             />
                             <ArrowIcon sx={{ color: 'text.secondary' }} />
                           </ListItemButton>
                         ) : (
-                          <ListItem sx={{ pl: 9, opacity: 0.6 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', pl: 9, py: 1, opacity: 0.6, width: '100%' }}>
                             <ListItemIcon sx={{ minWidth: 40 }}>
                               <LockIcon color="disabled" />
                             </ListItemIcon>
                             <ListItemText
                               primary={lesson.title}
                               secondary={
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  {getLessonIcon(lesson.type)}
-                                  <Typography variant="caption">{lesson.duration}</Typography>
-                                </Stack>
+                                <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                  {getLessonIcon(lesson.content_type)}
+                                  <Typography variant="caption" component="span">{lesson.estimated_duration} min</Typography>
+                                  {lesson.topics?.map((topic) => (
+                                    <Chip key={topic.id} label={topic.name} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                  ))}
+                                </Box>
                               }
                             />
-                          </ListItem>
+                          </Box>
                         )}
                       </ListItem>
                     ))}

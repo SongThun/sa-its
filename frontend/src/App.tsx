@@ -9,6 +9,11 @@ import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
 import Lesson from './pages/Lesson';
+import InstructorDashboard from './pages/instructor/InstructorDashboard';
+import CourseForm from './pages/instructor/CourseForm';
+import InstructorRegister from './pages/instructor/InstructorRegister';
+import InstructorRoute from './components/InstructorRoute';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -18,7 +23,7 @@ function App() {
           <Navbar />
           <Box component="main" sx={{ flexGrow: 1 }}>
             <Routes>
-              <Route path="/" element={<Navigate to="/courses" replace />} />
+              <Route path="/" element={<Courses />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
@@ -26,6 +31,18 @@ function App() {
               <Route path="/courses" element={<Courses />} />
               <Route path="/course/:courseId" element={<CourseDetail />} />
               <Route path="/course/:courseId/lesson/:lessonId" element={<Lesson />} />
+
+              {/* Instructor Routes - Public */}
+              <Route path="/instructor/register" element={<InstructorRegister />} />
+              <Route path="/instructor/login" element={<Navigate to="/login" replace />} />
+
+              {/* Instructor Routes - Protected */}
+              <Route path="/instructor" element={<InstructorRoute><InstructorDashboard /></InstructorRoute>} />
+              <Route path="/instructor/courses/create" element={<InstructorRoute><CourseForm /></InstructorRoute>} />
+              <Route path="/instructor/courses/:id/edit" element={<InstructorRoute><CourseForm /></InstructorRoute>} />
+
+              {/* 404 - Catch all unknown routes */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Box>
         </Box>

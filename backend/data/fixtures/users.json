@@ -6,6 +6,7 @@
       "email": "admin@example.com",
       "password": "Admin123!",
       "fullname": "System Administrator",
+      "role": "admin",
       "is_staff": true,
       "is_superuser": true
     },
@@ -13,7 +14,17 @@
       "username": "instructor1",
       "email": "instructor1@example.com",
       "password": "Instructor123!",
-      "fullname": "John Smith",
+      "fullname": "Dr. John Smith",
+      "role": "instructor",
+      "is_staff": true,
+      "is_superuser": false
+    },
+    {
+      "username": "instructor2",
+      "email": "instructor2@example.com",
+      "password": "Instructor123!",
+      "fullname": "Prof. Sarah Chen",
+      "role": "instructor",
       "is_staff": true,
       "is_superuser": false
     },
@@ -22,6 +33,7 @@
       "email": "student1@example.com",
       "password": "Student123!",
       "fullname": "Alice Johnson",
+      "role": "student",
       "is_staff": false,
       "is_superuser": false
     },
@@ -30,6 +42,7 @@
       "email": "student2@example.com",
       "password": "Student123!",
       "fullname": "Bob Williams",
+      "role": "student",
       "is_staff": false,
       "is_superuser": false
     },
@@ -38,6 +51,7 @@
       "email": "student3@example.com",
       "password": "Student123!",
       "fullname": "Carol Davis",
+      "role": "student",
       "is_staff": false,
       "is_superuser": false
     }
