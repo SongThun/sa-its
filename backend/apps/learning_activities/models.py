@@ -31,7 +31,6 @@ class Enrollment(models.Model):
         max_digits=5,
         decimal_places=2,
         default=0.00,
-        help_text="Overall course completion percentage",
     )
     is_active = models.BooleanField(default=True)
     enrolled_at = models.DateTimeField(auto_now_add=True)
@@ -49,3 +48,67 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.student.email} - {self.course.title}"
+
+
+class ModuleProgress(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name="module_progress",
+    )
+    module = models.ForeignKey(
+        "content.Module",
+        on_delete=models.CASCADE,
+        related_name="student_progress",
+    )
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    progress_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        unique_together = ["enrollment", "module"]
+        verbose_name = "Module Progress"
+        verbose_name_plural = "Module Progress"
+
+    def __str__(self):
+        status = "completed" if self.is_completed else f"{self.progress_percent}%"
+        return f"{self.enrollment.student.email} - {self.module.title} ({status})"
+
+
+class LessonProgress(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    enrollment = models.ForeignKey(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name="lesson_progress",
+    )
+    lesson = models.ForeignKey(
+        "content.Lesson",
+        on_delete=models.CASCADE,
+        related_name="student_progress",
+    )
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    last_accessed_at = models.DateTimeField(auto_now=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        unique_together = ["enrollment", "lesson"]
+        verbose_name = "Lesson Progress"
+        verbose_name_plural = "Lesson Progress"
+
+    def __str__(self):
+        status = "completed" if self.is_completed else "in progress"
+        return f"{self.enrollment.student.email} - {self.lesson.title} ({status})"

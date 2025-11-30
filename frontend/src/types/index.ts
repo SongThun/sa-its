@@ -15,7 +15,7 @@ export interface User {
 
 // Topic types
 export interface Topic {
-  id: string; // UUID
+  id: number; // auto-increment integer
   name: string;
   slug: string;
   description?: string;
@@ -58,14 +58,43 @@ export interface Module {
   updated_at?: string;
 }
 
+// Lesson content types
+export type LessonContentType = 'video' | 'text' | 'document';
+
+export interface VideoContent {
+  video_url?: string;
+  video_id?: string;
+  duration_seconds?: number;
+  transcript?: string;
+  timestamps?: Array<{ time: number; label: string }>;
+}
+
+export interface TextContent {
+  main_content?: string;
+  images?: string[];
+  reading_level?: string;
+}
+
+export interface DocumentContent {
+  document_url?: string;
+  file_type?: 'pdf' | 'docx' | 'pptx' | string;
+  preview_images?: string[];
+}
+
+export type LessonContentData =
+  | VideoContent
+  | TextContent
+  | DocumentContent;
+
 // Lesson types
 export interface Lesson {
   id: string; // UUID
   title: string;
-  content_type: 'video' | 'text' | 'interactive' | 'document' | 'quiz';
+  content_type: LessonContentType;
   estimated_duration: number; // in minutes
   order: number;
-  content?: string; // simple text/markdown content
+  content?: string; // legacy text/markdown content
+  content_data?: LessonContentData; // structured content based on content_type
   topics?: Topic[]; // topics for this lesson (only in unlocked view)
   is_published?: boolean;
   created_at?: string;
@@ -87,7 +116,7 @@ export interface CourseFormData {
   est_duration: number;
   difficulty_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   category_id?: number;
-  topic_ids?: string[];
+  topic_ids?: number[];
   is_published?: boolean;
 }
 
@@ -102,18 +131,47 @@ export interface ModuleFormData {
 export interface LessonFormData {
   module_id: string; // UUID
   title: string;
-  content_type: 'video' | 'text' | 'interactive' | 'document' | 'quiz';
+  content_type: LessonContentType;
   estimated_duration: number;
   order: number;
   content?: string;
+  content_data?: LessonContentData;
+  topic_ids?: number[]; // integer array for topics
 }
 
-// Progress types
+// Progress types (matches backend response from /learning/courses/{id}/progress/)
 export interface EnrollmentProgress {
+  enrollment_id: string;
   course_id: string;
-  completed_lessons: string[];
-  last_accessed_lesson?: string;
   progress: number;
+  status: 'started' | 'in_progress' | 'completed';
+  completedLessons: string[];
+  completedModules: string[];
+  last_accessed_at: string | null;
+  completed_at: string | null;
+}
+
+// Enrolled course with progress (matches backend response from /learning/my-courses/)
+export interface EnrolledCourse {
+  // Course fields
+  id: string;
+  title: string;
+  description: string;
+  cover_image: string | null;
+  difficulty_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  est_duration: number;
+  rating: number;
+  students_count: number;
+  category: string;
+  instructor_name: string;
+  total_lessons: number;
+  // Enrollment/Progress fields
+  enrollment_id: string;
+  progress: number;
+  enrollment_status: 'started' | 'in_progress' | 'completed';
+  enrolled_at: string;
+  completed_at: string | null;
+  last_accessed_at: string | null;
 }
 
 // Auth types

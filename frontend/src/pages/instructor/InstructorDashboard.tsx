@@ -41,9 +41,6 @@ export default function InstructorDashboard() {
       setLoading(true);
       setError(null);
       const data = await instructorCoursesApi.getAll();
-      console.log('Loaded courses:', data);
-      console.log('First course ID:', data[0]?.id);
-      console.log('First course:', JSON.stringify(data[0], null, 2));
       setCourses(data);
     } catch (err) {
       const errorMessage = (err as Error).message || 'Failed to load courses. Please try again.';
@@ -72,7 +69,6 @@ export default function InstructorDashboard() {
   };
 
   const handleCardClick = (courseId: string) => {
-    console.log('Navigating to edit course with ID:', courseId);
     navigate(`/instructor/courses/${courseId}/edit`);
   };
 

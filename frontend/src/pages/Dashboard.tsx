@@ -28,14 +28,14 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { courseApi, enrollmentApi } from '../services/api';
-import type { Course, EnrollmentProgress } from '../types';
+import type { Course, EnrolledCourse } from '../types';
 
 export default function Dashboard() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [ongoingCourses, setOngoingCourses] = useState<Course[]>([]);
+  const [ongoingCourses, setOngoingCourses] = useState<EnrolledCourse[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const [progressMap, setProgressMap] = useState<Record<string, EnrollmentProgress>>({});
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [categories, setCategories] = useState<string[]>([]);
@@ -47,33 +47,21 @@ export default function Dashboard() {
       return;
     }
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, navigate]);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [courses, cats] = await Promise.all([
+      const [courses, cats, ongoing] = await Promise.all([
         courseApi.getAllCourses(),
         courseApi.getCategories(),
+        enrollmentApi.getOngoingCourses(),
       ]);
       setAllCourses(courses);
       setCategories(['All', ...cats]);
-
-      if (user) {
-        const ongoing = await enrollmentApi.getOngoingCourses();
-        setOngoingCourses(ongoing);
-
-        const progressPromises = user.enrolledCourses.map((courseId) =>
-          enrollmentApi.getCourseProgress(courseId)
-        );
-        const progressResults = await Promise.all(progressPromises);
-        const progressObj: Record<string, EnrollmentProgress> = {};
-        progressResults.forEach((progress) => {
-          progressObj[progress.courseId] = progress;
-        });
-        setProgressMap(progressObj);
-      }
+      setOngoingCourses(ongoing);
+      // Build set of enrolled course IDs for quick lookup
+      setEnrolledCourseIds(new Set(ongoing.map(c => c.id)));
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -89,7 +77,7 @@ export default function Dashboard() {
     return matchesSearch && matchesCategory;
   });
 
-  const isEnrolled = (courseId: string) => user?.enrolledCourses.includes(courseId) || false;
+  const isEnrolled = (courseId: string) => enrolledCourseIds.has(courseId);
 
   if (isLoading) {
     return (
@@ -116,7 +104,7 @@ export default function Dashboard() {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 3 }}>
             <Box>
               <Typography variant="h4" fontWeight={700} gutterBottom>
-                Welcome back, {user?.firstName}!
+                Welcome back, {user?.first_name}!
               </Typography>
               <Typography variant="body1" sx={{ opacity: 0.9 }}>
                 Continue your learning journey where you left off.
@@ -127,19 +115,19 @@ export default function Dashboard() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                   <SchoolIcon />
                   <Typography variant="h4" fontWeight={700}>
-                    {user?.enrolledCourses.length || 0}
+                    {ongoingCourses.length}
                   </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Courses</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>Enrolled</Typography>
               </Box>
               <Box sx={{ textAlign: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                   <LessonIcon />
                   <Typography variant="h4" fontWeight={700}>
-                    {user?.completedLessons.length || 0}
+                    {ongoingCourses.filter(c => c.enrollment_status === 'completed').length}
                   </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Lessons</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>Completed</Typography>
               </Box>
             </Stack>
           </Box>
@@ -169,7 +157,7 @@ export default function Dashboard() {
                       <CardMedia
                         component="img"
                         height="160"
-                        image={course.thumbnail}
+                        image={course.cover_image || 'https://via.placeholder.com/400x160?text=No+Image'}
                         alt={course.title}
                       />
                       <Box
@@ -197,23 +185,23 @@ export default function Dashboard() {
                         {course.title}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
-                        {course.instructor}
+                        {course.instructor_name}
                       </Typography>
                       <Box sx={{ mt: 2 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                           <Typography variant="body2" color="text.secondary">Progress</Typography>
                           <Typography variant="body2" fontWeight={500}>
-                            {progressMap[course.id]?.progress || 0}%
+                            {Math.round(course.progress)}%
                           </Typography>
                         </Box>
                         <LinearProgress
                           variant="determinate"
-                          value={progressMap[course.id]?.progress || 0}
+                          value={course.progress}
                           sx={{ height: 8, borderRadius: 4 }}
                         />
                       </Box>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                        Last accessed: {course.lastAccessed ? new Date(course.lastAccessed).toLocaleDateString() : 'Never'}
+                        Last accessed: {course.last_accessed_at ? new Date(course.last_accessed_at).toLocaleDateString() : 'Never'}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -282,7 +270,7 @@ export default function Dashboard() {
                       <CardMedia
                         component="img"
                         height="140"
-                        image={course.thumbnail}
+                        image={course.cover_image || 'https://via.placeholder.com/400x140?text=No+Image'}
                         alt={course.title}
                       />
                       {isEnrolled(course.id) && (
@@ -300,19 +288,19 @@ export default function Dashboard() {
                         {course.title}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
-                        {course.instructor}
+                        {course.instructor_name}
                       </Typography>
                       <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                           <Typography variant="caption" color="text.secondary">
-                            {course.duration}
+                            {Math.floor(course.est_duration / 60)}h {course.est_duration % 60}m
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <LevelIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                          <Typography variant="caption" color="text.secondary">
-                            {course.level}
+                          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                            {course.difficulty_level}
                           </Typography>
                         </Box>
                       </Stack>
@@ -320,7 +308,7 @@ export default function Dashboard() {
                         <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
                         <Typography variant="body2" fontWeight={500}>{course.rating}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          ({course.studentsCount.toLocaleString()} students)
+                          ({course.students_count.toLocaleString()} students)
                         </Typography>
                       </Box>
                     </CardContent>

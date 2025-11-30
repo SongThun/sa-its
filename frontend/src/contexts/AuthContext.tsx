@@ -1,4 +1,4 @@
-import { createContext, useState, type ReactNode } from 'react';
+import { createContext, useState, useEffect, type ReactNode } from 'react';
 import type { User } from '../types';
 import { authApi } from '../services/api';
 import { apiClient } from '../services/apiClient';
@@ -24,6 +24,15 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => authApi.getCurrentUser());
+
+  // Listen for logout events from apiClient (e.g., when token refresh fails)
+  useEffect(() => {
+    const handleLogout = () => {
+      setUser(null);
+    };
+    window.addEventListener('auth:logout', handleLogout);
+    return () => window.removeEventListener('auth:logout', handleLogout);
+  }, []);
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
     try {

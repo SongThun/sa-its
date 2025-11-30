@@ -1,11 +1,6 @@
-import type { User, Course, EnrollmentProgress } from '../types';
-import { mockUsers, mockCourses } from '../data/mockData';
+import type { User, Course, EnrollmentProgress, EnrolledCourse } from '../types';
 import { apiClient, type ApiError } from './apiClient';
 
-// Simulate API delay for mock endpoints (still used by progress APIs)
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Backend enrollment response types
 interface EnrollmentResponse {
   id: string;
   course_id: string;
@@ -23,7 +18,6 @@ interface EnrollmentStatusResponse {
   enrollment?: EnrollmentResponse;
 }
 
-// Backend API response types
 interface BackendUser {
   id: string;
   username: string;
@@ -54,9 +48,7 @@ interface ProfileResponse extends BackendUser {
   last_name: string;
 }
 
-// Transform backend user to frontend user format
 function transformUser(backendUser: BackendUser): User {
-  // Parse fullname into first/last name if not provided separately
   let firstName = backendUser.first_name || '';
   let lastName = backendUser.last_name || '';
 
@@ -81,7 +73,6 @@ function transformUser(backendUser: BackendUser): User {
   };
 }
 
-// Auth API - Uses real backend
 export const authApi = {
   register: async (data: {
     email: string;
@@ -104,7 +95,6 @@ export const authApi = {
   },
 
   getCurrentUser: (): User | null => {
-    // Check if we have valid tokens
     if (!apiClient.hasTokens()) {
       localStorage.removeItem('currentUser');
       return null;
@@ -116,7 +106,6 @@ export const authApi = {
 
   updateProfile: async (userId: string, updates: Partial<User>): Promise<User | null> => {
     try {
-      // Transform frontend fields to backend fields
       const backendUpdates: Record<string, unknown> = {};
 
       if (updates.firstName !== undefined) {
@@ -127,9 +116,6 @@ export const authApi = {
       }
       if (updates.firstName !== undefined || updates.lastName !== undefined) {
         backendUpdates.fullname = `${updates.firstName || ''} ${updates.lastName || ''}`.trim();
-      }
-      if (updates.bio !== undefined) {
-        // Note: bio might not be supported by backend yet
       }
 
       const response = await apiClient.patch<ProfileResponse>('/auth/profile/', backendUpdates);
@@ -157,7 +143,6 @@ export const authApi = {
   },
 };
 
-// Course API - Uses real backend
 export const courseApi = {
   getAllCourses: async (): Promise<Course[]> => {
     return apiClient.get<Course[]>('/content/courses/');
@@ -185,7 +170,6 @@ export const courseApi = {
   },
 };
 
-// Enrollment API - Uses real backend (user identified via JWT token)
 export const enrollmentApi = {
   enrollInCourse: async (courseId: string): Promise<boolean> => {
     try {
@@ -218,38 +202,26 @@ export const enrollmentApi = {
     }
   },
 
-  getMyEnrollments: async (): Promise<EnrollmentResponse[]> => {
+  getMyCoursesWithProgress: async (status?: 'ongoing' | 'completed'): Promise<EnrolledCourse[]> => {
     try {
-      return await apiClient.get<EnrollmentResponse[]>('/learning/enrollments/');
+      const query = status ? `?status=${status}` : '';
+      return await apiClient.get<EnrolledCourse[]>(`/learning/my-courses/${query}`);
     } catch {
       return [];
     }
   },
 
-  getEnrolledCourses: async (): Promise<Course[]> => {
+  getEnrolledCourses: async (): Promise<EnrolledCourse[]> => {
     try {
-      const enrollments = await apiClient.get<EnrollmentResponse[]>('/learning/enrollments/');
-      const courseIds = enrollments.map(e => e.course_id);
-      const allCourses = await apiClient.get<Course[]>('/content/courses/');
-      return allCourses.filter(c => courseIds.includes(c.id));
+      return await apiClient.get<EnrolledCourse[]>('/learning/my-courses/');
     } catch {
       return [];
     }
   },
 
-  getOngoingCourses: async (): Promise<Course[]> => {
+  getOngoingCourses: async (): Promise<EnrolledCourse[]> => {
     try {
-      const enrollments = await apiClient.get<EnrollmentResponse[]>('/learning/enrollments/');
-      const ongoingEnrollments = enrollments
-        .filter(e => e.status !== 'completed' && e.last_accessed_at)
-        .sort((a, b) => {
-          const dateA = a.last_accessed_at ? new Date(a.last_accessed_at).getTime() : 0;
-          const dateB = b.last_accessed_at ? new Date(b.last_accessed_at).getTime() : 0;
-          return dateB - dateA;
-        });
-      const courseIds = ongoingEnrollments.map(e => e.course_id);
-      const allCourses = await apiClient.get<Course[]>('/content/courses/');
-      return allCourses.filter(c => courseIds.includes(c.id));
+      return await apiClient.get<EnrolledCourse[]>('/learning/my-courses/?status=ongoing');
     } catch {
       return [];
     }
@@ -257,89 +229,61 @@ export const enrollmentApi = {
 
   getCourseProgress: async (courseId: string): Promise<EnrollmentProgress> => {
     try {
-      const response = await apiClient.get<EnrollmentStatusResponse>(
-        `/learning/courses/${courseId}/enrollment-status/`
+      return await apiClient.get<EnrollmentProgress>(
+        `/learning/courses/${courseId}/progress/`
       );
-      if (response.is_enrolled && response.enrollment) {
-        return {
-          course_id: courseId,
-          completed_lessons: [],
-          progress: parseFloat(response.enrollment.progress_percent),
-        };
-      }
-      return { course_id: courseId, completed_lessons: [], progress: 0 };
     } catch {
-      return { course_id: courseId, completed_lessons: [], progress: 0 };
+      return {
+        enrollment_id: '',
+        course_id: courseId,
+        progress: 0,
+        status: 'started',
+        completedLessons: [],
+        completedModules: [],
+        last_accessed_at: null,
+        completed_at: null,
+      };
     }
   },
 };
 
-// Progress API - Mock (to be replaced with real API later)
 export const progressApi = {
-  completeLesson: async (userId: string, lessonId: string): Promise<boolean> => {
-    await delay(300);
-    const userIndex = mockUsers.findIndex(u => u.id === userId);
-    if (userIndex !== -1 && !mockUsers[userIndex].completedLessons.includes(lessonId)) {
-      mockUsers[userIndex].completedLessons.push(lessonId);
-      localStorage.setItem('currentUser', JSON.stringify(mockUsers[userIndex]));
-      return true;
-    }
-    return false;
-  },
-
-  uncompleteLesson: async (userId: string, lessonId: string): Promise<boolean> => {
-    await delay(300);
-    const userIndex = mockUsers.findIndex(u => u.id === userId);
-    if (userIndex !== -1) {
-      mockUsers[userIndex].completedLessons = mockUsers[userIndex].completedLessons.filter(
-        id => id !== lessonId
+  completeLesson: async (courseId: string, lessonId: string): Promise<EnrollmentProgress | null> => {
+    try {
+      return await apiClient.post<EnrollmentProgress>(
+        `/learning/courses/${courseId}/lessons/${lessonId}/complete/`,
+        {}
       );
-      localStorage.setItem('currentUser', JSON.stringify(mockUsers[userIndex]));
-      return true;
-    }
-    return false;
-  },
-
-  isLessonCompleted: (userId: string, lessonId: string): boolean => {
-    const user = mockUsers.find(u => u.id === userId);
-    return user ? user.completedLessons.includes(lessonId) : false;
-  },
-
-  updateLastAccessed: async (courseId: string): Promise<void> => {
-    await delay(100);
-    const courseIndex = mockCourses.findIndex(c => c.id === courseId);
-    if (courseIndex !== -1) {
-      mockCourses[courseIndex].lastAccessed = new Date().toISOString().split('T')[0];
+    } catch (error) {
+      console.error('Complete lesson error:', error);
+      return null;
     }
   },
+
+  uncompleteLesson: async (courseId: string, lessonId: string): Promise<EnrollmentProgress | null> => {
+    try {
+      return await apiClient.delete<EnrollmentProgress>(
+        `/learning/courses/${courseId}/lessons/${lessonId}/complete/`
+      );
+    } catch (error) {
+      console.error('Uncomplete lesson error:', error);
+      return null;
+    }
+  },
+
+  updateLastAccessed: async (): Promise<void> => {},
 };
-
-// ============================================================================
-// INSTRUCTOR API - Real backend endpoints for course management
-// ============================================================================
 
 import type { Topic, Category, ModuleFormData, LessonFormData, Module, Lesson } from '../types';
 
 export const topicsApi = {
   getAll: async (search?: string): Promise<Topic[]> => {
     const query = search ? `?search=${encodeURIComponent(search)}` : '';
-    return apiClient.get<Topic[]>(`/core/topics/${query}`);
+    return apiClient.get<Topic[]>(`/content/topics/${query}`);
   },
 
   getById: async (id: string): Promise<Topic> => {
-    return apiClient.get<Topic>(`/core/topics/${id}/`);
-  },
-
-  create: async (data: { name: string; slug: string; description?: string }): Promise<Topic> => {
-    return apiClient.post<Topic>('/core/topics/create/', data);
-  },
-
-  update: async (id: string, data: Partial<{ name: string; slug: string; description: string }>): Promise<Topic> => {
-    return apiClient.put<Topic>(`/core/topics/${id}/update/`, data);
-  },
-
-  delete: async (id: string): Promise<void> => {
-    return apiClient.delete(`/core/topics/${id}/delete/`);
+    return apiClient.get<Topic>(`/content/topics/${id}/`);
   },
 };
 
@@ -429,28 +373,5 @@ export const lessonsApi = {
 
   delete: async (id: string): Promise<void> => {
     return apiClient.delete(`/content/instructor/lessons/${id}/`);
-  },
-};
-
-export const uploadApi = {
-  uploadFile: async (
-    file: File,
-    onProgress?: (progress: number) => void
-  ): Promise<{ url: string }> => {
-    // Note: This is a placeholder. Backend file upload endpoint needs to be implemented
-    // For now, simulate upload
-    return new Promise((resolve) => {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        onProgress?.(progress);
-        if (progress >= 100) {
-          clearInterval(interval);
-          resolve({
-            url: `https://example.com/uploads/${file.name}`,
-          });
-        }
-      }, 100);
-    });
   },
 };

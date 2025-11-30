@@ -1,10 +1,12 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 
 from apps.content.serializers import ModuleSerializer, ModuleModelSerializer
 from apps.content.permissions import IsInstructor, IsOwner
-from apps.content.services import ContentFacade
+from apps.content.services import ContentFacade, ModuleService, CourseService
 
 
 class ModuleViewSet(viewsets.ModelViewSet):
@@ -83,11 +85,32 @@ class ModuleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def publish(self, request, pk=None):
         module = self.get_object()
-        ContentFacade.publish(module)
+        ContentFacade.publish_module(module)
         return Response({"detail": f"Module '{module.title}' published"})
 
     @action(detail=True, methods=["post"])
     def unpublish(self, request, pk=None):
         module = self.get_object()
-        ContentFacade.unpublish(module)
+        ContentFacade.unpublish_module(module)
         return Response({"detail": f"Module '{module.title}' unpublished"})
+
+
+class CourseModulesView(APIView):
+    """List modules for a specific course (public endpoint)."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, course_id):
+        course = CourseService.get_published_by_id(course_id)
+        if not course:
+            return Response(
+                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        modules = ModuleService.get_by_course(course_id)
+        # Only show published modules for public access
+        if not request.user.is_authenticated or request.user != course.instructor:
+            modules = modules.filter(is_published=True)
+
+        serializer = ModuleSerializer(modules, many=True, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -31,12 +31,12 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { enrollmentApi } from '../services/api';
-import type { Course } from '../types';
+import type { EnrolledCourse } from '../types';
 
 export default function Profile() {
   const { user, isAuthenticated, updateUser } = useAuth();
   const navigate = useNavigate();
-  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     firstName: '',
@@ -53,8 +53,8 @@ export default function Profile() {
 
     if (user) {
       setEditForm({
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         bio: user.bio || '',
       });
       loadEnrolledCourses();
@@ -83,18 +83,20 @@ export default function Profile() {
   const handleCancel = () => {
     if (user) {
       setEditForm({
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         bio: user.bio || '',
       });
     }
     setIsEditing(false);
   };
 
+  const completedCourses = enrolledCourses.filter(c => c.enrollment_status === 'completed').length;
+
   const stats = [
     { icon: <SchoolIcon />, value: enrolledCourses.length, label: 'Enrolled Courses', color: 'primary.main' },
-    { icon: <CheckIcon />, value: user?.completedLessons.length || 0, label: 'Completed Lessons', color: 'success.main' },
-    { icon: <CalendarIcon />, value: user ? new Date(user.createdAt).toLocaleDateString() : '', label: 'Member Since', color: 'info.main' },
+    { icon: <CheckIcon />, value: completedCourses, label: 'Completed Courses', color: 'success.main' },
+    { icon: <CalendarIcon />, value: user ? new Date(user.created_at).toLocaleDateString() : '', label: 'Member Since', color: 'info.main' },
     { icon: <StreakIcon />, value: 7, label: 'Day Streak', color: 'warning.main' },
   ];
 
@@ -201,7 +203,7 @@ export default function Profile() {
                   <>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                       <Typography variant="h4" fontWeight={700}>
-                        {user.firstName} {user.lastName}
+                        {user.first_name} {user.last_name}
                       </Typography>
                       <IconButton size="small" onClick={() => setIsEditing(true)}>
                         <EditIcon fontSize="small" />
@@ -253,43 +255,40 @@ export default function Profile() {
             </Box>
           ) : (
             <Grid container spacing={3}>
-              {enrolledCourses.map((course) => {
-                const randomProgress = Math.floor(Math.random() * 60) + 20;
-                return (
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={course.id}>
-                    <Card
-                      sx={{ cursor: 'pointer', '&:hover': { boxShadow: 4 } }}
-                      onClick={() => navigate(`/course/${course.id}`)}
-                    >
-                      <CardMedia
-                        component="img"
-                        height="120"
-                        image={course.thumbnail}
-                        alt={course.title}
-                      />
-                      <CardContent>
-                        <Typography variant="subtitle1" fontWeight={600} noWrap>
-                          {course.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          {course.instructor}
-                        </Typography>
-                        <Box sx={{ mt: 2 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                            <Typography variant="caption" color="text.secondary">Progress</Typography>
-                            <Typography variant="caption" fontWeight={500}>{randomProgress}%</Typography>
-                          </Box>
-                          <LinearProgress
-                            variant="determinate"
-                            value={randomProgress}
-                            sx={{ height: 6, borderRadius: 3 }}
-                          />
+              {enrolledCourses.map((course) => (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={course.id}>
+                  <Card
+                    sx={{ cursor: 'pointer', '&:hover': { boxShadow: 4 } }}
+                    onClick={() => navigate(`/course/${course.id}`)}
+                  >
+                    <CardMedia
+                      component="img"
+                      height="120"
+                      image={course.cover_image || 'https://via.placeholder.com/400x120?text=No+Image'}
+                      alt={course.title}
+                    />
+                    <CardContent>
+                      <Typography variant="subtitle1" fontWeight={600} noWrap>
+                        {course.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {course.instructor_name}
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary">Progress</Typography>
+                          <Typography variant="caption" fontWeight={500}>{Math.round(course.progress)}%</Typography>
                         </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                );
-              })}
+                        <LinearProgress
+                          variant="determinate"
+                          value={course.progress}
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
             </Grid>
           )}
         </Paper>

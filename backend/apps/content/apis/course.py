@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from apps.content.serializers import (
-    CategorySerializer,
     CourseListSerializer,
     CourseDetailSerializer,
     CourseDetailLockedSerializer,
@@ -14,14 +13,6 @@ from apps.content.serializers import (
 from apps.content.services import ContentFacade
 from apps.content.permissions import IsInstructor, IsOwner
 from apps.learning_activities.services import EnrollmentService
-
-
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only viewset for categories."""
-
-    queryset = ContentFacade.get_all_category()
-    serializer_class = CategorySerializer
-    permission_classes = [AllowAny]
 
 
 class CoursePublicViewSet(viewsets.ReadOnlyModelViewSet):
@@ -114,7 +105,7 @@ class CourseInstructorViewSet(viewsets.ModelViewSet):
     )
     def publish(self, request, *args, **kwargs):
         course = self.get_object()
-        ContentFacade.publish(course)
+        ContentFacade.publish_course(course)
         course.refresh_from_db()
         serializer = CourseListSerializer(course, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -124,7 +115,7 @@ class CourseInstructorViewSet(viewsets.ModelViewSet):
     )
     def unpublish(self, request, *args, **kwargs):
         course = self.get_object()
-        ContentFacade.unpublish(course)
+        ContentFacade.unpublish_course(course)
         course.refresh_from_db()
         serializer = CourseListSerializer(course, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)

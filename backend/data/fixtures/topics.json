@@ -50,6 +50,56 @@
       "name": "TypeScript",
       "slug": "typescript",
       "description": "TypeScript programming language"
+    },
+    {
+      "name": "Variables",
+      "slug": "variables",
+      "description": "Programming variables and data types"
+    },
+    {
+      "name": "Functions",
+      "slug": "functions",
+      "description": "Functions and methods in programming"
+    },
+    {
+      "name": "OOP",
+      "slug": "oop",
+      "description": "Object-Oriented Programming concepts"
+    },
+    {
+      "name": "Control Flow",
+      "slug": "control-flow",
+      "description": "Conditionals, loops, and program flow"
+    },
+    {
+      "name": "Data Structures",
+      "slug": "data-structures",
+      "description": "Lists, arrays, dictionaries, and more"
+    },
+    {
+      "name": "Web Development",
+      "slug": "web-development",
+      "description": "Building web applications"
+    },
+    {
+      "name": "Backend",
+      "slug": "backend",
+      "description": "Server-side development"
+    },
+    {
+      "name": "Frontend",
+      "slug": "frontend",
+      "description": "Client-side development"
+    },
+    {
+      "name": "Databases",
+      "slug": "databases",
+      "description": "Database design and management"
+    },
+    {
+      "name": "Testing",
+      "slug": "testing",
+      "description": "Software testing and quality assurance"
     }
   ]
 }

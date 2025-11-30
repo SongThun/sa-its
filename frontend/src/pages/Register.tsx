@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -37,6 +37,9 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+  const action = searchParams.get('action');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +65,12 @@ export default function Register() {
     try {
       const result = await register(email, password, firstName, lastName);
       if (result.success) {
-        navigate('/dashboard');
+        // If there's a redirect URL, navigate there
+        if (redirectUrl) {
+          navigate(redirectUrl + (action ? `?action=${action}` : ''));
+        } else {
+          navigate('/');
+        }
       } else {
         setError(result.error || 'Registration failed. Please try again.');
       }
@@ -268,7 +276,12 @@ export default function Register() {
 
             <Typography variant="body2" align="center" sx={{ mt: 3 }}>
               Already have an account?{' '}
-              <Link component={RouterLink} to="/login" underline="hover" fontWeight={500}>
+              <Link
+                component={RouterLink}
+                to={`/login${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}${action ? `&action=${action}` : ''}` : ''}`}
+                underline="hover"
+                fontWeight={500}
+              >
                 Sign in
               </Link>
             </Typography>

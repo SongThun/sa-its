@@ -88,12 +88,12 @@ export default function Navbar() {
               <>
                 <Button
                   component={RouterLink}
-                  to={user?.role === 'instructor' ? '/instructor' : '/dashboard'}
+                  to={user?.role === 'instructor' ? '/instructor' : '/'}
                   color="inherit"
                   startIcon={<DashboardIcon />}
                   sx={{ fontWeight: 500 }}
                 >
-                  Dashboard
+                  {user?.role === 'instructor' ? 'Dashboard' : 'Home'}
                 </Button>
 
                 <IconButton onClick={handleMenuOpen} sx={{ ml: 1 }}>

@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from apps.content.serializers import (
     LessonDetailSerializer,
@@ -9,8 +10,7 @@ from apps.content.serializers import (
     LessonModelSerializer,
 )
 from apps.content.permissions import IsInstructor, IsOwner
-
-from apps.content.services import ContentFacade
+from apps.content.services import ContentFacade, LessonService, ModuleService
 
 
 class LessonViewSet(viewsets.ModelViewSet):
@@ -86,11 +86,8 @@ class LessonViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         lesson = serializer.save()
 
-        # Update topics if provided
-        if topic_ids is not None:
-            from apps.content.models import Topic
-
-            lesson.topics.set(Topic.objects.filter(id__in=topic_ids))
+        # Update topics if provided (via ContentFacade to maintain layer separation)
+        ContentFacade.set_lesson_topics(lesson, topic_ids)
 
         response_serializer = LessonDetailSerializer(
             lesson, context=self.get_serializer_context()
@@ -104,8 +101,7 @@ class LessonViewSet(viewsets.ModelViewSet):
     )
     def publish(self, request, pk=None):
         lesson = self.get_object()
-        lesson.is_published = True
-        lesson.save(update_fields=["is_published", "updated_at"])
+        ContentFacade.publish_lesson(lesson)
         serializer = LessonDetailSerializer(
             lesson, context=self.get_serializer_context()
         )
@@ -118,9 +114,40 @@ class LessonViewSet(viewsets.ModelViewSet):
     )
     def unpublish(self, request, pk=None):
         lesson = self.get_object()
-        lesson.is_published = False
-        lesson.save(update_fields=["is_published", "updated_at"])
+        ContentFacade.unpublish_lesson(lesson)
         serializer = LessonDetailSerializer(
             lesson, context=self.get_serializer_context()
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ModuleLessonsView(APIView):
+    """List lessons for a specific module (public endpoint)."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, module_id):
+        module = ModuleService.get_by_id(module_id)
+        if not module:
+            return Response(
+                {"error": "Module not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check if module's course is published
+        if not module.course.is_published:
+            return Response(
+                {"error": "Module not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        lessons = LessonService.get_by_module(module_id)
+        # Only show published lessons for public access
+        is_instructor = (
+            request.user.is_authenticated and request.user == module.course.instructor
+        )
+        if not is_instructor:
+            lessons = lessons.filter(is_published=True)
+
+        serializer = LessonDetailSerializer(
+            lessons, many=True, context={"request": request}
         )
         return Response(serializer.data, status=status.HTTP_200_OK)

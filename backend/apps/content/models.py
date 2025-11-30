@@ -4,7 +4,6 @@ import uuid
 
 
 class Category(models.Model):
-    # Uses default auto-incrementing integer id
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -19,9 +18,6 @@ class Category(models.Model):
 
 
 class Topic(models.Model):
-    """Topics act as tags for courses, modules, and lessons."""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True)
     description = models.TextField(blank=True)
@@ -50,9 +46,7 @@ class Course(models.Model):
         choices=DifficultyLevel.choices,
         default=DifficultyLevel.BEGINNER,
     )
-    est_duration = models.PositiveIntegerField(
-        help_text="Estimated duration in minutes", default=0
-    )
+    est_duration = models.PositiveIntegerField(default=0)
     is_published = models.BooleanField(default=False)
     cover_image = models.URLField(
         max_length=500,
@@ -93,10 +87,8 @@ class Module(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0)
-    is_published = models.BooleanField(default=False)
-    estimated_duration = models.PositiveIntegerField(
-        help_text="Estimated duration in minutes", default=0
-    )
+    is_published = models.BooleanField(default=True)
+    estimated_duration = models.PositiveIntegerField(default=0)
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
 
@@ -104,8 +96,7 @@ class Module(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["course", "order", "created_at"]
-        unique_together = ["course", "order"]
+        ordering = ["order", "-created_at"]
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
@@ -115,23 +106,20 @@ class Lesson(models.Model):
     class ContentType(models.TextChoices):
         VIDEO = "video", "Video"
         TEXT = "text", "Text"
-        INTERACTIVE = "interactive", "Interactive"
         DOCUMENT = "document", "Document"
-        QUIZ = "quiz", "Quiz"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
-    content = models.TextField(blank=True, help_text="Lesson content (markdown/html)")
     content_type = models.CharField(
         max_length=20,
         choices=ContentType.choices,
         default=ContentType.TEXT,
     )
+    content_data = models.JSONField(default=dict, blank=True)
+    content = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0)
-    estimated_duration = models.PositiveIntegerField(
-        help_text="Estimated duration in minutes", default=0
-    )
-    is_published = models.BooleanField(default=False)
+    estimated_duration = models.PositiveIntegerField(default=0)
+    is_published = models.BooleanField(default=True)
 
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons")
     topics = models.ManyToManyField(Topic, blank=True, related_name="lessons")
@@ -140,7 +128,14 @@ class Lesson(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["module", "order", "created_at"]
+        ordering = ["order", "-created_at"]
 
     def __str__(self):
         return f"{self.module.title} - {self.title}"
+
+    def get_content(self):
+        if self.content_data:
+            return self.content_data
+        if self.content:
+            return {"main_content": self.content}
+        return {}

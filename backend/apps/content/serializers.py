@@ -3,14 +3,12 @@ from rest_framework import serializers
 from apps.content.models import Course, Category, Module, Lesson, Topic
 
 
-# ============ Category Serializers ============
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ["id", "name", "description"]
 
 
-# ============ Topic Serializers ============
 class TopicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Topic
@@ -25,7 +23,6 @@ class TopicListSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug"]
 
 
-# ============ Lesson Serializers ============
 class LessonListSerializer(serializers.ModelSerializer):
     """Lesson metadata for list views."""
 
@@ -50,6 +47,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
     """Full lesson detail including content."""
 
     topics = TopicListSerializer(many=True, read_only=True)
+    content_data = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
@@ -57,6 +55,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "content",
+            "content_data",
             "content_type",
             "order",
             "estimated_duration",
@@ -66,8 +65,11 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def get_content_data(self, obj):
+        """Return content_data with fallback to legacy content field."""
+        return obj.get_content()
 
-# ============ Module Serializers ============
+
 class ModuleSerializer(serializers.ModelSerializer):
     """Module with full lesson list (for enrolled users)."""
 
@@ -93,18 +95,15 @@ class ModuleSerializer(serializers.ModelSerializer):
         """Filter lessons based on user role - instructors see all, others see published only."""
         request = self.context.get("request")
         lessons = obj.lessons.all()
-        # Instructors see all lessons
+
         if request and request.user.is_authenticated:
             if hasattr(request.user, "role") and request.user.role == "instructor":
-                return LessonListSerializer(lessons, many=True).data
-            # Check if user is the course instructor
+                return LessonDetailSerializer(lessons, many=True).data
             if obj.course.instructor == request.user:
-                return LessonListSerializer(lessons, many=True).data
-        # Others see only published lessons
-        return LessonListSerializer(lessons.filter(is_published=True), many=True).data
+                return LessonDetailSerializer(lessons, many=True).data
+        return LessonDetailSerializer(lessons.filter(is_published=True), many=True).data
 
     def get_total_lessons(self, obj):
-        """Count lessons based on user role."""
         request = self.context.get("request")
         lessons = obj.lessons.all()
         if request and request.user.is_authenticated:
@@ -342,14 +341,16 @@ class LessonModelSerializer(serializers.ModelSerializer):
     """Serializer for creating and updating lessons."""
 
     topic_ids = serializers.ListField(
-        child=serializers.UUIDField(), write_only=True, required=False
+        child=serializers.IntegerField(), write_only=True, required=False
     )
+    content_data = serializers.JSONField(required=False, default=dict)
 
     class Meta:
         model = Lesson
         fields = [
             "title",
             "content",
+            "content_data",
             "content_type",
             "order",
             "estimated_duration",

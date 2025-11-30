@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -31,6 +31,9 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+  const action = searchParams.get('action');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +43,17 @@ export default function Login() {
     try {
       const result = await login(email, password);
       if (result.success) {
-        // Check user role and redirect accordingly
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        if (currentUser.role === 'instructor') {
-          navigate('/instructor');
+        // If there's a redirect URL, navigate there
+        if (redirectUrl) {
+          navigate(redirectUrl + (action ? `?action=${action}` : ''));
         } else {
-          navigate('/dashboard');
+          // Check user role and redirect accordingly
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          if (currentUser.role === 'instructor') {
+            navigate('/instructor');
+          } else {
+            navigate('/');
+          }
         }
       } else {
         setError(result.error || 'Invalid email or password');
@@ -211,7 +219,12 @@ export default function Login() {
 
             <Typography variant="body2" align="center" sx={{ mt: 3 }}>
               Don't have an account?{' '}
-              <Link component={RouterLink} to="/register" underline="hover" fontWeight={500}>
+              <Link
+                component={RouterLink}
+                to={`/register${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}${action ? `&action=${action}` : ''}` : ''}`}
+                underline="hover"
+                fontWeight={500}
+              >
                 Sign up as Student
               </Link>
               {' or '}

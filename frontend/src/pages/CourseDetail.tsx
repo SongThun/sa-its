@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -32,7 +32,6 @@ import {
   Lock as LockIcon,
   PlayCircle as PlayIcon,
   Article as ArticleIcon,
-  Quiz as QuizIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   ArrowForward as ArrowIcon,
@@ -40,6 +39,7 @@ import {
   MenuBook as ModuleIcon,
   PhoneAndroid as MobileIcon,
   EmojiEvents as CertificateIcon,
+  Description as DocumentIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { courseApi, enrollmentApi } from '../services/api';
@@ -47,27 +47,63 @@ import type { Course, EnrollmentProgress } from '../types';
 
 export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
-  const { user, isAuthenticated, refreshUser } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [course, setCourse] = useState<Course | null>(null);
   const [progress, setProgress] = useState<EnrollmentProgress | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentChecked, setEnrollmentChecked] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
-
-  const isEnrolled = user?.enrolledCourses.includes(courseId || '') || false;
 
   useEffect(() => {
     loadCourse();
+    if (isAuthenticated && courseId) {
+      checkEnrollmentStatus();
+    } else {
+      setEnrollmentChecked(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId]);
+  }, [courseId, isAuthenticated]);
+
+  // Handle auto-enroll when returning from login with action=enroll
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'enroll' && isAuthenticated && enrollmentChecked && courseId) {
+      // Clear the action param from URL
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+      // Trigger enrollment only if not already enrolled
+      if (!isEnrolled && !isEnrolling) {
+        handleEnrollAfterLogin();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isEnrolled, enrollmentChecked, searchParams]);
+
+  const handleEnrollAfterLogin = async () => {
+    if (!courseId) return;
+    setIsEnrolling(true);
+    try {
+      const success = await enrollmentApi.enrollInCourse(courseId);
+      if (success) {
+        setIsEnrolled(true);
+      }
+    } catch (error) {
+      console.error('Failed to enroll:', error);
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
 
   useEffect(() => {
-    if (isEnrolled && user && courseId) {
+    if (isEnrolled && courseId) {
       loadProgress();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEnrolled, user, courseId]);
+  }, [isEnrolled, courseId]);
 
   const loadCourse = async () => {
     if (!courseId) return;
@@ -75,7 +111,7 @@ export default function CourseDetail() {
     try {
       const courseData = await courseApi.getCourseById(courseId);
       setCourse(courseData);
-      if (courseData?.modules.length) {
+      if (courseData?.modules?.length) {
         setExpandedModules(new Set([courseData.modules[0].id]));
       }
     } catch (error) {
@@ -85,8 +121,20 @@ export default function CourseDetail() {
     }
   };
 
+  const checkEnrollmentStatus = async () => {
+    if (!courseId) return;
+    try {
+      const enrolled = await enrollmentApi.isEnrolled(courseId);
+      setIsEnrolled(enrolled);
+    } catch (error) {
+      console.error('Failed to check enrollment:', error);
+    } finally {
+      setEnrollmentChecked(true);
+    }
+  };
+
   const loadProgress = async () => {
-    if (!user || !courseId) return;
+    if (!courseId) return;
     try {
       const progressData = await enrollmentApi.getCourseProgress(courseId);
       setProgress(progressData);
@@ -97,14 +145,16 @@ export default function CourseDetail() {
 
   const handleEnroll = async () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate(`/login?redirect=${encodeURIComponent(`/course/${courseId}`)}&action=enroll`);
       return;
     }
     if (!courseId) return;
     setIsEnrolling(true);
     try {
-      await enrollmentApi.enrollInCourse(courseId);
-      refreshUser();
+      const success = await enrollmentApi.enrollInCourse(courseId);
+      if (success) {
+        setIsEnrolled(true);
+      }
     } catch (error) {
       console.error('Failed to enroll:', error);
     } finally {
@@ -116,9 +166,11 @@ export default function CourseDetail() {
     if (!isAuthenticated || !courseId) return;
     setIsEnrolling(true);
     try {
-      await enrollmentApi.unenrollFromCourse(courseId);
-      refreshUser();
-      setProgress(null);
+      const success = await enrollmentApi.unenrollFromCourse(courseId);
+      if (success) {
+        setIsEnrolled(false);
+        setProgress(null);
+      }
     } catch (error) {
       console.error('Failed to unenroll:', error);
     } finally {
@@ -137,7 +189,7 @@ export default function CourseDetail() {
   };
 
   const isLessonCompleted = (lessonId: string) => {
-    return progress?.completedLessons.includes(lessonId) || false;
+    return progress?.completedLessons?.includes(lessonId) || false;
   };
 
   const getTotalLessons = () => {
@@ -148,7 +200,7 @@ export default function CourseDetail() {
     switch (type) {
       case 'video': return <VideoIcon sx={{ fontSize: 20 }} />;
       case 'text': return <ArticleIcon sx={{ fontSize: 20 }} />;
-      case 'quiz': return <QuizIcon sx={{ fontSize: 20 }} />;
+      case 'document': return <DocumentIcon sx={{ fontSize: 20 }} />;
       default: return <PlayIcon sx={{ fontSize: 20 }} />;
     }
   };
@@ -249,19 +301,19 @@ export default function CourseDetail() {
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                             <Typography variant="body2">Progress</Typography>
                             <Typography variant="body2" fontWeight={500}>
-                              {progress.progress}% ({progress.completedLessons.length}/{getTotalLessons()} lessons)
+                              {Math.round(progress.progress)}% ({progress.completedLessons?.length || 0}/{getTotalLessons()} lessons)
                             </Typography>
                           </Box>
                           <LinearProgress
                             variant="determinate"
-                            value={progress.progress}
+                            value={Math.round(progress.progress)}
                             sx={{ height: 10, borderRadius: 5 }}
                           />
                         </Box>
                       )}
                       <Button
                         component={RouterLink}
-                        to={`/course/${courseId}/lesson/${course.modules[0]?.lessons[0]?.id}`}
+                        to={`/course/${courseId}/lesson/${course.modules?.[0]?.lessons?.[0]?.id || ''}`}
                         variant="contained"
                         fullWidth
                         size="large"
@@ -374,32 +426,35 @@ export default function CourseDetail() {
                             <ListItemText
                               primary={lesson.title}
                               secondary={
-                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                                <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                                   {getLessonIcon(lesson.content_type)}
-                                  <Typography variant="caption">{lesson.estimated_duration} min</Typography>
+                                  <Typography variant="caption" component="span">{lesson.estimated_duration} min</Typography>
                                   {lesson.topics?.map((topic) => (
                                     <Chip key={topic.id} label={topic.name} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
                                   ))}
-                                </Stack>
+                                </Box>
                               }
                             />
                             <ArrowIcon sx={{ color: 'text.secondary' }} />
                           </ListItemButton>
                         ) : (
-                          <ListItem sx={{ pl: 9, opacity: 0.6 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', pl: 9, py: 1, opacity: 0.6, width: '100%' }}>
                             <ListItemIcon sx={{ minWidth: 40 }}>
                               <LockIcon color="disabled" />
                             </ListItemIcon>
                             <ListItemText
                               primary={lesson.title}
                               secondary={
-                                <Stack direction="row" spacing={1} alignItems="center">
+                                <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                                   {getLessonIcon(lesson.content_type)}
-                                  <Typography variant="caption">{lesson.estimated_duration} min</Typography>
-                                </Stack>
+                                  <Typography variant="caption" component="span">{lesson.estimated_duration} min</Typography>
+                                  {lesson.topics?.map((topic) => (
+                                    <Chip key={topic.id} label={topic.name} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                  ))}
+                                </Box>
                               }
                             />
-                          </ListItem>
+                          </Box>
                         )}
                       </ListItem>
                     ))}

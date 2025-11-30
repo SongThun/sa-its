@@ -22,7 +22,6 @@ import {
 import {
   ArrowBack as BackIcon,
   CheckCircle as CheckIcon,
-  PlayCircle as PlayIcon,
   Article as ArticleIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -31,16 +30,49 @@ import {
   AccessTime as TimeIcon,
   RadioButtonUnchecked as UncheckedIcon,
   Celebration as CelebrationIcon,
+  Description as DocumentIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { courseApi, progressApi, enrollmentApi } from '../services/api';
-import type { Course, Lesson as LessonType, EnrollmentProgress } from '../types';
+import type {
+  Course,
+  Lesson as LessonType,
+  EnrollmentProgress,
+  VideoContent,
+  TextContent,
+  DocumentContent,
+  LessonContentType,
+} from '../types';
 
 const DRAWER_WIDTH = 320;
 
+// Helper function to get icon based on content type
+const getContentTypeIcon = (contentType: LessonContentType, fontSize: 'small' | 'medium' = 'small') => {
+  switch (contentType) {
+    case 'video':
+      return <VideoIcon fontSize={fontSize} />;
+    case 'text':
+      return <ArticleIcon fontSize={fontSize} />;
+    case 'document':
+      return <DocumentIcon fontSize={fontSize} />;
+    default:
+      return <ArticleIcon fontSize={fontSize} />;
+  }
+};
+
+// Helper function to get label for content type
+const getContentTypeLabel = (contentType: LessonContentType): string => {
+  const labels: Record<LessonContentType, string> = {
+    video: 'Video',
+    text: 'Article',
+    document: 'Document',
+  };
+  return labels[contentType] || 'Content';
+};
+
 export default function Lesson() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
-  const { user, isAuthenticated, refreshUser } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [currentLesson, setCurrentLesson] = useState<LessonType | null>(null);
@@ -64,19 +96,19 @@ export default function Lesson() {
     try {
       const [courseData, progressData] = await Promise.all([
         courseApi.getCourseById(courseId),
-        enrollmentApi.getCourseProgress(user.id, courseId),
+        enrollmentApi.getCourseProgress(courseId),
       ]);
 
       if (courseData) {
         setCourse(courseData);
-        for (const module of courseData.modules) {
-          const lesson = module.lessons.find((l) => l.id === lessonId);
+        for (const module of courseData.modules || []) {
+          const lesson = (module.lessons || []).find((l) => l.id === lessonId);
           if (lesson) {
             setCurrentLesson(lesson);
             break;
           }
         }
-        await progressApi.updateLastAccessed(courseId);
+        await progressApi.updateLastAccessed();
       }
       setProgress(progressData);
     } catch (error) {
@@ -87,18 +119,17 @@ export default function Lesson() {
   };
 
   const handleCompleteLesson = async () => {
-    if (!user || !lessonId) return;
+    if (!courseId || !lessonId) return;
     setIsCompleting(true);
     try {
-      const isAlreadyCompleted = progress?.completedLessons.includes(lessonId);
+      const isAlreadyCompleted = progress?.completedLessons?.includes(lessonId);
+      let newProgress: EnrollmentProgress | null;
       if (isAlreadyCompleted) {
-        await progressApi.uncompleteLesson(user.id, lessonId);
+        newProgress = await progressApi.uncompleteLesson(courseId, lessonId);
       } else {
-        await progressApi.completeLesson(user.id, lessonId);
+        newProgress = await progressApi.completeLesson(courseId, lessonId);
       }
-      refreshUser();
-      if (courseId) {
-        const newProgress = await enrollmentApi.getCourseProgress(user.id, courseId);
+      if (newProgress) {
         setProgress(newProgress);
       }
     } catch (error) {
@@ -109,14 +140,15 @@ export default function Lesson() {
   };
 
   const isLessonCompleted = (id: string) => {
-    return progress?.completedLessons.includes(id) || false;
+    return progress?.completedLessons?.includes(id) || false;
   };
 
   const getCurrentLessonIndex = () => {
-    if (!course) return { moduleIndex: 0, lessonIndex: 0 };
+    if (!course?.modules?.length) return { moduleIndex: 0, lessonIndex: 0 };
     for (let mi = 0; mi < course.modules.length; mi++) {
-      for (let li = 0; li < course.modules[mi].lessons.length; li++) {
-        if (course.modules[mi].lessons[li].id === lessonId) {
+      const lessons = course.modules[mi].lessons || [];
+      for (let li = 0; li < lessons.length; li++) {
+        if (lessons[li].id === lessonId) {
           return { moduleIndex: mi, lessonIndex: li };
         }
       }
@@ -125,10 +157,10 @@ export default function Lesson() {
   };
 
   const getAdjacentLessons = () => {
-    if (!course) return { prev: null, next: null };
+    if (!course?.modules?.length) return { prev: null, next: null };
     const allLessons: { lesson: LessonType; moduleTitle: string }[] = [];
     course.modules.forEach((module) => {
-      module.lessons.forEach((lesson) => {
+      (module.lessons || []).forEach((lesson) => {
         allLessons.push({ lesson, moduleTitle: module.title });
       });
     });
@@ -178,11 +210,11 @@ export default function Lesson() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <LinearProgress
               variant="determinate"
-              value={progress?.progress || 0}
+              value={Math.round(progress?.progress || 0)}
               sx={{ flexGrow: 1, height: 8, borderRadius: 4 }}
             />
             <Typography variant="body2" fontWeight={600}>
-              {progress?.progress || 0}%
+              {Math.round(progress?.progress || 0)}%
             </Typography>
           </Box>
         </Box>
@@ -218,15 +250,13 @@ export default function Lesson() {
                   <ListItemIcon sx={{ minWidth: 36 }}>
                     {isLessonCompleted(lesson.id) ? (
                       <CheckIcon color="success" fontSize="small" />
-                    ) : lesson.type === 'video' ? (
-                      <PlayIcon fontSize="small" color="action" />
                     ) : (
-                      <ArticleIcon fontSize="small" color="action" />
+                      getContentTypeIcon(lesson.content_type)
                     )}
                   </ListItemIcon>
                   <ListItemText
                     primary={lesson.title}
-                    secondary={lesson.duration}
+                    secondary={`${lesson.estimated_duration} min`}
                     primaryTypographyProps={{ variant: 'body2', noWrap: true }}
                     secondaryTypographyProps={{ variant: 'caption' }}
                   />
@@ -298,22 +328,31 @@ export default function Lesson() {
             <Typography variant="h4" fontWeight={700} gutterBottom>
               {currentLesson.title}
             </Typography>
-            <Stack direction="row" spacing={2} sx={{ mb: 4 }}>
+            <Stack direction="row" spacing={2} sx={{ mb: 4 }} flexWrap="wrap" useFlexGap>
               <Chip
-                icon={currentLesson.type === 'video' ? <VideoIcon /> : <ArticleIcon />}
-                label={currentLesson.type === 'video' ? 'Video' : 'Article'}
+                icon={getContentTypeIcon(currentLesson.content_type, 'small')}
+                label={getContentTypeLabel(currentLesson.content_type)}
                 size="small"
               />
               <Chip
                 icon={<TimeIcon />}
-                label={currentLesson.duration}
+                label={`${currentLesson.estimated_duration} min`}
                 size="small"
                 variant="outlined"
               />
+              {currentLesson.topics?.map((topic) => (
+                <Chip
+                  key={topic.id}
+                  label={topic.name}
+                  size="small"
+                  color="secondary"
+                  variant="outlined"
+                />
+              ))}
             </Stack>
 
             {/* Video Content */}
-            {currentLesson.type === 'video' && currentLesson.content.videoUrl && (
+            {currentLesson.content_type === 'video' && (currentLesson.content_data as VideoContent)?.video_url && (
               <Paper
                 sx={{
                   position: 'relative',
@@ -324,7 +363,7 @@ export default function Lesson() {
                 }}
               >
                 <iframe
-                  src={currentLesson.content.videoUrl}
+                  src={(currentLesson.content_data as VideoContent)?.video_url}
                   title={currentLesson.title}
                   style={{
                     position: 'absolute',
@@ -341,7 +380,41 @@ export default function Lesson() {
             )}
 
             {/* Text Content */}
-            {currentLesson.content.text && (
+            {currentLesson.content_type === 'text' && (currentLesson.content_data as TextContent)?.main_content && (
+              <Paper sx={{ p: 3, mb: 4, bgcolor: 'background.default' }}>
+                <Typography
+                  component="div"
+                  sx={{
+                    '& p': { mb: 2 },
+                    '& h1, & h2, & h3': { mt: 3, mb: 2 },
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                  }}
+                  dangerouslySetInnerHTML={{ __html: (currentLesson.content_data as TextContent)?.main_content || '' }}
+                />
+              </Paper>
+            )}
+
+            {/* Document Content */}
+            {currentLesson.content_type === 'document' && (currentLesson.content_data as DocumentContent)?.document_url && (
+              <Paper sx={{ p: 3, mb: 4, bgcolor: 'background.default' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <DocumentIcon color="primary" />
+                  <Typography variant="h6">Document</Typography>
+                </Box>
+                <Button
+                  variant="contained"
+                  href={(currentLesson.content_data as DocumentContent)?.document_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open Document
+                </Button>
+              </Paper>
+            )}
+
+            {/* Legacy/Fallback Content */}
+            {currentLesson.content && !currentLesson.content_data && (
               <Paper sx={{ p: 3, mb: 4, bgcolor: 'background.default' }}>
                 <Typography
                   component="pre"
@@ -352,7 +425,7 @@ export default function Lesson() {
                     m: 0,
                   }}
                 >
-                  {currentLesson.content.text}
+                  {currentLesson.content}
                 </Typography>
               </Paper>
             )}

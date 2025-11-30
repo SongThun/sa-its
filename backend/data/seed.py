@@ -235,6 +235,7 @@ def handle_courses(data_list):
                     estimated_duration=lesson_data.get("estimated_duration", 0),
                     order=lesson_data.get("order", 0),
                     content=lesson_data.get("content", ""),
+                    content_data=lesson_data.get("content_data", {}),
                     is_published=lesson_data.get("is_published", False),
                 )
 

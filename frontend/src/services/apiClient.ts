@@ -1,8 +1,3 @@
-/**
- * API Client for backend communication.
- * Handles HTTP requests, authentication tokens, and error handling.
- */
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 interface ApiError {
@@ -34,6 +29,8 @@ class ApiClient {
 
   private clearTokens(): void {
     localStorage.removeItem('auth_tokens');
+    localStorage.removeItem('currentUser');
+    window.dispatchEvent(new Event('auth:logout'));
   }
 
   private async request<T>(
@@ -48,7 +45,6 @@ class ApiClient {
       ...((options.headers as Record<string, string>) || {}),
     };
 
-    // Add auth header if we have a token
     if (tokens?.access) {
       headers['Authorization'] = `Bearer ${tokens.access}`;
     }
@@ -58,11 +54,9 @@ class ApiClient {
       headers,
     });
 
-    // Handle 401 - try to refresh token
     if (response.status === 401 && tokens?.refresh) {
       const refreshed = await this.refreshToken(tokens.refresh);
       if (refreshed) {
-        // Retry the original request with new token
         headers['Authorization'] = `Bearer ${refreshed.access}`;
         const retryResponse = await fetch(url, { ...options, headers });
         if (!retryResponse.ok) {
@@ -76,7 +70,6 @@ class ApiClient {
       throw await this.handleError(response);
     }
 
-    // Handle empty responses
     const text = await response.text();
     return text ? JSON.parse(text) : ({} as T);
   }
@@ -89,12 +82,10 @@ class ApiClient {
       errorData = { detail: response.statusText };
     }
 
-    // Handle DRF error format
     if (errorData.detail) {
       return { message: String(errorData.detail) };
     }
 
-    // Handle field errors
     const errors: Record<string, string[]> = {};
     let firstMessage = 'An error occurred';
 
@@ -132,7 +123,6 @@ class ApiClient {
     }
   }
 
-  // Public methods
   async get<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'GET' });
   }
@@ -141,13 +131,6 @@ class ApiClient {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  async put<T>(endpoint: string, data: unknown): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(data),
     });
   }
 
@@ -162,7 +145,6 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
 
-  // Token management
   saveTokens(tokens: TokenPair): void {
     this.setTokens(tokens);
   }

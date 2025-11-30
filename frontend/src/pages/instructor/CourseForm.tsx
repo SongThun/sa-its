@@ -39,9 +39,6 @@ export default function CourseForm() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
-  console.log('CourseForm - URL param ID:', id);
-  console.log('CourseForm - isEditMode:', isEditMode);
-
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -66,12 +63,8 @@ export default function CourseForm() {
       const categoriesData = await categoriesApi.getAll();
       setCategories(categoriesData);
 
-      // Load course if editing
       if (id) {
-        console.log('Loading course with ID:', id);
         const course = await instructorCoursesApi.getById(id);
-        console.log('Loaded course:', course);
-        // Find category id from category name
         const category = categoriesData.find(c => c.name === course.category);
         setFormData({
           title: course.title,

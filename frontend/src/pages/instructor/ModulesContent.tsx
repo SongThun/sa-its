@@ -178,7 +178,7 @@ export default function ModulesContent() {
     }
   };
 
-  const handleSaveLesson = async (data: Partial<Lesson>) => {
+  const handleSaveLesson = async (data: Partial<Lesson> & { topic_ids?: number[] }) => {
     if (!targetModuleId) return;
 
     try {
@@ -191,6 +191,8 @@ export default function ModulesContent() {
           order: data.order!,
           estimated_duration: data.estimated_duration!,
           content: data.content,
+          content_data: data.content_data,
+          topic_ids: data.topic_ids,
         });
 
         setModules(modules.map(m => {
@@ -213,6 +215,8 @@ export default function ModulesContent() {
           order: data.order || 1,
           estimated_duration: data.estimated_duration!,
           content: data.content,
+          content_data: data.content_data,
+          topic_ids: data.topic_ids,
         });
 
         setModules(modules.map(m => {
@@ -454,7 +458,7 @@ export default function ModulesContent() {
                             </IconButton>
                             <ListItemText
                               primary={
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                                   <Typography variant="body1">
                                     {lesson.title}
                                   </Typography>
@@ -463,6 +467,15 @@ export default function ModulesContent() {
                                     size="small"
                                     color={getContentTypeColor(lesson.content_type)}
                                   />
+                                  {lesson.topics?.map((topic) => (
+                                    <Chip
+                                      key={topic.id}
+                                      label={topic.name}
+                                      size="small"
+                                      variant="outlined"
+                                      color="secondary"
+                                    />
+                                  ))}
                                 </Box>
                               }
                               secondary={`${lesson.estimated_duration} minutes`}
