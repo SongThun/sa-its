@@ -350,7 +350,7 @@ export default function CourseDetail() {
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                           <ModuleIcon color="action" />
-                          <Typography variant="body2">{course.modules.length} modules</Typography>
+                          <Typography variant="body2">{course.modules?.length || 0} modules</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                           <MobileIcon color="action" />

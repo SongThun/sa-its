@@ -138,7 +138,7 @@ export default function InstructorDashboard() {
             value: courses.reduce((sum, c) => sum + c.total_lessons, 0),
           },
         ].map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
             <Card sx={{ height: '100%' }}>
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -187,7 +187,7 @@ export default function InstructorDashboard() {
       ) : (
         <Grid container spacing={3}>
           {courses.map((course) => (
-            <Grid item xs={12} sm={6} md={4} key={course.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={course.id}>
               <Card
                 sx={{
                   height: '100%',

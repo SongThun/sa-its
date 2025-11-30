@@ -104,18 +104,18 @@ export const authApi = {
     return userStr ? JSON.parse(userStr) : null;
   },
 
-  updateProfile: async (userId: string, updates: Partial<User>): Promise<User | null> => {
+  updateProfile: async (_userId: string, updates: Partial<User>): Promise<User | null> => {
     try {
       const backendUpdates: Record<string, unknown> = {};
 
-      if (updates.firstName !== undefined) {
-        backendUpdates.first_name = updates.firstName;
+      if (updates.first_name !== undefined) {
+        backendUpdates.first_name = updates.first_name;
       }
-      if (updates.lastName !== undefined) {
-        backendUpdates.last_name = updates.lastName;
+      if (updates.last_name !== undefined) {
+        backendUpdates.last_name = updates.last_name;
       }
-      if (updates.firstName !== undefined || updates.lastName !== undefined) {
-        backendUpdates.fullname = `${updates.firstName || ''} ${updates.lastName || ''}`.trim();
+      if (updates.first_name !== undefined || updates.last_name !== undefined) {
+        backendUpdates.fullname = `${updates.first_name || ''} ${updates.last_name || ''}`.trim();
       }
 
       const response = await apiClient.patch<ProfileResponse>('/auth/profile/', backendUpdates);

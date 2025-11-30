@@ -78,7 +78,7 @@ export default function LandingPage() {
       >
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="h2" fontWeight={800} gutterBottom sx={{ fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
                 Learn Skills That Matter
               </Typography>
@@ -122,7 +122,7 @@ export default function LandingPage() {
                 </Button>
               </Stack>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box
                 sx={{
                   display: 'flex',
@@ -151,7 +151,7 @@ export default function LandingPage() {
       <Container maxWidth="lg" sx={{ py: 6 }}>
         <Grid container spacing={3}>
           {stats.map((stat, index) => (
-            <Grid item xs={6} md={3} key={index}>
+            <Grid size={{ xs: 6, md: 3 }} key={index}>
               <Paper
                 elevation={2}
                 sx={{
@@ -186,7 +186,7 @@ export default function LandingPage() {
           </Box>
           <Grid container spacing={4}>
             {features.map((feature, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                 <Card
                   sx={{
                     height: '100%',

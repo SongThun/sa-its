@@ -221,7 +221,7 @@ export default function Lesson() {
       </Box>
 
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-        {course.modules.map((module, moduleIndex) => (
+        {(course.modules || []).map((module, moduleIndex) => (
           <Box key={module.id}>
             <Box sx={{ px: 2, py: 1.5, bgcolor: 'background.default' }}>
               <Typography variant="caption" color="text.secondary">
@@ -232,7 +232,7 @@ export default function Lesson() {
               </Typography>
             </Box>
             <List dense disablePadding>
-              {module.lessons.map((lesson) => (
+              {(module.lessons || []).map((lesson) => (
                 <ListItemButton
                   key={lesson.id}
                   component={RouterLink}
@@ -317,7 +317,7 @@ export default function Lesson() {
               {course.title}
             </Link>
             <Typography variant="body2" color="text.secondary">
-              {course.modules[getCurrentLessonIndex().moduleIndex]?.title}
+              {course.modules?.[getCurrentLessonIndex().moduleIndex]?.title}
             </Typography>
           </Breadcrumbs>
         </Paper>
@@ -404,7 +404,8 @@ export default function Lesson() {
                 </Box>
                 <Button
                   variant="contained"
-                  href={(currentLesson.content_data as DocumentContent)?.document_url}
+                  component="a"
+                  href={(currentLesson.content_data as DocumentContent)?.document_url || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

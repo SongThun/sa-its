@@ -29,7 +29,7 @@ interface FormData {
   description: string;
   cover_image: string;
   est_duration: number;
-  difficulty_level: 'beginner' | 'intermediate' | 'advanced';
+  difficulty_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   category_id: number | '';
   is_published: boolean;
 }
@@ -206,7 +206,7 @@ export default function CourseForm() {
           />
 
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Estimated Duration (minutes)"
@@ -219,12 +219,12 @@ export default function CourseForm() {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Difficulty Level</InputLabel>
                 <Select
                   value={formData.difficulty_level}
-                  onChange={(e) => setFormData({ ...formData, difficulty_level: e.target.value as 'beginner' | 'intermediate' | 'advanced' })}
+                  onChange={(e) => setFormData({ ...formData, difficulty_level: e.target.value as FormData['difficulty_level'] })}
                   label="Difficulty Level"
                   required
                 >
