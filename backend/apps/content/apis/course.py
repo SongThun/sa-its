@@ -105,7 +105,7 @@ class CourseInstructorViewSet(viewsets.ModelViewSet):
     )
     def publish(self, request, *args, **kwargs):
         course = self.get_object()
-        ContentFacade.publish_course(course)
+        ContentFacade.publish(course)
         course.refresh_from_db()
         serializer = CourseListSerializer(course, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -115,7 +115,7 @@ class CourseInstructorViewSet(viewsets.ModelViewSet):
     )
     def unpublish(self, request, *args, **kwargs):
         course = self.get_object()
-        ContentFacade.unpublish_course(course)
+        ContentFacade.unpublish(course)
         course.refresh_from_db()
         serializer = CourseListSerializer(course, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)

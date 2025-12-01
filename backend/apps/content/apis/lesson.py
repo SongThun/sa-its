@@ -101,7 +101,7 @@ class LessonViewSet(viewsets.ModelViewSet):
     )
     def publish(self, request, pk=None):
         lesson = self.get_object()
-        ContentFacade.publish_lesson(lesson)
+        ContentFacade.publish(lesson)
         serializer = LessonDetailSerializer(
             lesson, context=self.get_serializer_context()
         )
@@ -114,7 +114,7 @@ class LessonViewSet(viewsets.ModelViewSet):
     )
     def unpublish(self, request, pk=None):
         lesson = self.get_object()
-        ContentFacade.unpublish_lesson(lesson)
+        ContentFacade.unpublish(lesson)
         serializer = LessonDetailSerializer(
             lesson, context=self.get_serializer_context()
         )

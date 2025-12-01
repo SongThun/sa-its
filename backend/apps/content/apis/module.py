@@ -85,13 +85,13 @@ class ModuleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def publish(self, request, pk=None):
         module = self.get_object()
-        ContentFacade.publish_module(module)
+        ContentFacade.publish(module)
         return Response({"detail": f"Module '{module.title}' published"})
 
     @action(detail=True, methods=["post"])
     def unpublish(self, request, pk=None):
         module = self.get_object()
-        ContentFacade.unpublish_module(module)
+        ContentFacade.unpublish(module)
         return Response({"detail": f"Module '{module.title}' unpublished"})
 
 
