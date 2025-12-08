@@ -6,7 +6,10 @@ from rest_framework.permissions import AllowAny
 
 from apps.content.serializers import ModuleSerializer, ModuleModelSerializer
 from apps.content.permissions import IsInstructor, IsOwner
-from apps.content.services import ContentFacade, ModuleService, CourseService
+from apps.content.services import ContentFacade, ModuleService
+
+facade = ContentFacade()
+module_service = ModuleService()
 
 
 class ModuleViewSet(viewsets.ModelViewSet):
@@ -23,7 +26,7 @@ class ModuleViewSet(viewsets.ModelViewSet):
         return actions.get(self.action, ModuleSerializer)
 
     def get_queryset(self):
-        return ContentFacade.get_modules_for_instructor(self.request.user)
+        return module_service.get_by_instructor(self.request.user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -41,10 +44,10 @@ class ModuleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        module = ContentFacade.add_module_to_course(
+        module = facade.add_module_to_course(
             instructor=request.user,
             course_id=course_id,
-            module_data=serializer.validated_data,
+            data=serializer.validated_data,
         )
 
         if not module:
@@ -60,10 +63,10 @@ class ModuleViewSet(viewsets.ModelViewSet):
         partial = kwargs.pop("partial", False)
 
         # Validate ownership through service
-        module, validated_data = ContentFacade.resolve_module_update(
+        module, validated_data = facade.resolve_module_update(
             instructor=request.user,
             module_id=kwargs.get("pk"),
-            module_data=request.data,
+            data=request.data,
         )
 
         if not module:
@@ -85,13 +88,13 @@ class ModuleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def publish(self, request, pk=None):
         module = self.get_object()
-        ContentFacade.publish_module(module)
+        module_service.publish(module)
         return Response({"detail": f"Module '{module.title}' published"})
 
     @action(detail=True, methods=["post"])
     def unpublish(self, request, pk=None):
         module = self.get_object()
-        ContentFacade.unpublish_module(module)
+        module_service.unpublish(module)
         return Response({"detail": f"Module '{module.title}' unpublished"})
 
 
@@ -101,16 +104,11 @@ class CourseModulesView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, course_id):
-        course = CourseService.get_published_by_id(course_id)
-        if not course:
+        course, modules = facade.get_course_modules_for_user(course_id, request.user)
+        if course is None:
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
             )
-
-        modules = ModuleService.get_by_course(course_id)
-        # Only show published modules for public access
-        if not request.user.is_authenticated or request.user != course.instructor:
-            modules = modules.filter(is_published=True)
 
         serializer = ModuleSerializer(modules, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)

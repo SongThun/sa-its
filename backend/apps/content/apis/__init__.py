@@ -1,8 +1,6 @@
-from .course import CoursePublicViewSet, CourseInstructorViewSet
+from .course import CoursePublicViewSet, CourseInstructorViewSet, CategoryViewSet
 from .module import ModuleViewSet, CourseModulesView
-from .lesson import LessonViewSet, ModuleLessonsView
-from .category import CategoryViewSet
-from .topic import TopicViewSet
+from .lesson import LessonViewSet, ModuleLessonsView, TopicViewSet
 
 __all__ = [
     "CoursePublicViewSet",

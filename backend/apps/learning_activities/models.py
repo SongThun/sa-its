@@ -1,15 +1,25 @@
 from django.db import models
 from django.conf import settings
-import uuid
+
+from apps.core.models import (
+    UUIDPrimaryKeyMixin,
+    TimestampMixin,
+    CompletableMixin,
+    ProgressMixin,
+)
 
 
-class Enrollment(models.Model):
+class Enrollment(
+    UUIDPrimaryKeyMixin,
+    ProgressMixin,
+    TimestampMixin,
+    models.Model,
+):
     class Status(models.TextChoices):
         STARTED = "started", "Started"
         IN_PROGRESS = "in_progress", "In Progress"
         COMPLETED = "completed", "Completed"
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -27,18 +37,10 @@ class Enrollment(models.Model):
         choices=Status.choices,
         default=Status.STARTED,
     )
-    progress_percent = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=0.00,
-    )
     is_active = models.BooleanField(default=True)
     enrolled_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     last_accessed_at = models.DateTimeField(null=True, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-enrolled_at"]
@@ -50,8 +52,13 @@ class Enrollment(models.Model):
         return f"{self.student.email} - {self.course.title}"
 
 
-class ModuleProgress(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class ModuleProgress(
+    UUIDPrimaryKeyMixin,
+    CompletableMixin,
+    ProgressMixin,
+    TimestampMixin,
+    models.Model,
+):
     enrollment = models.ForeignKey(
         Enrollment,
         on_delete=models.CASCADE,
@@ -62,16 +69,6 @@ class ModuleProgress(models.Model):
         on_delete=models.CASCADE,
         related_name="student_progress",
     )
-    is_completed = models.BooleanField(default=False)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    progress_percent = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=0.00,
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-updated_at"]
@@ -84,8 +81,12 @@ class ModuleProgress(models.Model):
         return f"{self.enrollment.student.email} - {self.module.title} ({status})"
 
 
-class LessonProgress(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class LessonProgress(
+    UUIDPrimaryKeyMixin,
+    CompletableMixin,
+    TimestampMixin,
+    models.Model,
+):
     enrollment = models.ForeignKey(
         Enrollment,
         on_delete=models.CASCADE,
@@ -96,12 +97,7 @@ class LessonProgress(models.Model):
         on_delete=models.CASCADE,
         related_name="student_progress",
     )
-    is_completed = models.BooleanField(default=False)
-    completed_at = models.DateTimeField(null=True, blank=True)
     last_accessed_at = models.DateTimeField(auto_now=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-updated_at"]

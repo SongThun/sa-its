@@ -3,19 +3,22 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from apps.content.services import ContentFacade
+from apps.content.services import CourseService, LessonService
 from apps.learning_activities.services import EnrollmentService, LearningProgressService
 from apps.learning_activities.serializers import (
     EnrollmentSerializer,
     EnrolledCourseSerializer,
 )
 
+course_service = CourseService()
+lesson_service = LessonService()
+
 
 class EnrollView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, course_id):
-        if not ContentFacade.published_course_exists(course_id):
+        if not course_service.published_exists(course_id):
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -29,7 +32,7 @@ class UnenrollView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, course_id):
-        if not ContentFacade.course_exists(course_id):
+        if not course_service.exists(course_id):
             return Response(
                 {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -118,7 +121,7 @@ class LessonCompleteView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if not ContentFacade.lesson_exists_in_course(lesson_id, course_id):
+        if not lesson_service.exists_in_course(lesson_id, course_id):
             return Response(
                 {"error": "Lesson not found in this course"},
                 status=status.HTTP_404_NOT_FOUND,

@@ -74,7 +74,8 @@ class LearningProgressService:
             progress.completed_at = timezone.now()
             progress.save(update_fields=["is_completed", "completed_at", "updated_at"])
 
-        module_id = ContentFacade.get_module_id_for_lesson(lesson_id)
+        facade = ContentFacade()
+        module_id = facade.get_lesson_module_id(lesson_id)
         if module_id:
             LearningProgressService._update_module_progress(enrollment, module_id)
 
@@ -91,7 +92,8 @@ class LearningProgressService:
         ).update(is_completed=False, completed_at=None, updated_at=timezone.now())
 
         if updated > 0:
-            module_id = ContentFacade.get_module_id_for_lesson(lesson_id)
+            facade = ContentFacade()
+            module_id = facade.get_lesson_module_id(lesson_id)
             if module_id:
                 LearningProgressService._update_module_progress(enrollment, module_id)
 
@@ -134,9 +136,8 @@ class LearningProgressService:
     def _update_enrollment_progress(enrollment: Enrollment) -> None:
         from apps.content.services import ContentFacade
 
-        total_lessons = ContentFacade.count_published_lessons_in_course(
-            enrollment.course_id
-        )
+        facade = ContentFacade()
+        total_lessons = facade.count_published_lessons_in_course(enrollment.course_id)
 
         if total_lessons == 0:
             return
@@ -176,14 +177,13 @@ class LearningProgressService:
     def _update_module_progress(enrollment: Enrollment, module_id) -> None:
         from apps.content.services import ContentFacade
 
-        total_lessons = ContentFacade.count_published_lessons_in_module(module_id)
+        facade = ContentFacade()
+        total_lessons = facade.count_published_lessons_in_module(module_id)
 
         if total_lessons == 0:
             return
 
-        lesson_ids_in_module = ContentFacade.get_published_lesson_ids_in_module(
-            module_id
-        )
+        lesson_ids_in_module = facade.get_published_lesson_ids_in_module(module_id)
 
         completed_count = LessonProgress.objects.filter(
             enrollment=enrollment,
