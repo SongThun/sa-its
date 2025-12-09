@@ -67,22 +67,30 @@ class InstructorContentViewSet(PublishableViewSetMixin, viewsets.ModelViewSet):
 # ==================== PUBLIC VIEWSETS ====================
 
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
-    permission_classes = [AllowAny]
 
     def get_queryset(self):
         return get_content_facade().get_all_categories()
 
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+        return [IsAuthenticated(), IsInstructor()]
 
-class TopicViewSet(viewsets.ReadOnlyModelViewSet):
+
+class TopicViewSet(viewsets.ModelViewSet):
     serializer_class = TopicSerializer
-    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter]
     search_fields = ["name", "slug", "description"]
 
     def get_queryset(self):
         return get_content_facade().get_all_topics()
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [AllowAny()]
+        return [IsAuthenticated(), IsInstructor()]
 
 
 class CoursePublicViewSet(viewsets.ReadOnlyModelViewSet):
