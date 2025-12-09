@@ -95,6 +95,7 @@ class LessonWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = [
+            "id",
             "module_id",
             "title",
             "content",
@@ -195,6 +196,7 @@ class ModuleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Module
         fields = [
+            "id",
             "course_id",
             "title",
             "description",
@@ -302,6 +304,7 @@ class CourseWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = [
+            "id",
             "title",
             "description",
             "cover_image",
