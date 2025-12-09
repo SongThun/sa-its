@@ -37,13 +37,15 @@ class PublishableViewSetMixin:
     def publish(self, request, pk=None):
         obj = self.get_object()
         obj.publish()
-        return Response({"status": "published"})
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def unpublish(self, request, pk=None):
         obj = self.get_object()
         obj.unpublish()
-        return Response({"status": "unpublished"})
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)
 
 
 class InstructorContentViewSet(PublishableViewSetMixin, viewsets.ModelViewSet):
@@ -122,7 +124,7 @@ class CourseInstructorViewSet(InstructorContentViewSet):
     def get_serializer_class(self):
         if self.action == "list":
             return CourseInstructorListSerializer
-        if self.action == "retrieve":
+        if self.action in ["retrieve", "publish", "unpublish"]:
             return CourseInstructorDetailSerializer
         return CourseWriteSerializer
 
@@ -162,7 +164,7 @@ class LessonInstructorViewSet(InstructorContentViewSet):
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update"]:
             return LessonWriteSerializer
-        if self.action == "retrieve":
+        if self.action in ["retrieve", "publish", "unpublish"]:
             return LessonDetailSerializer
         return LessonListSerializer
 
