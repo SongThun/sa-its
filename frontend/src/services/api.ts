@@ -366,10 +366,6 @@ export const instructorCoursesApi = {
 };
 
 export const modulesApi = {
-  getByCourse: async (courseId: string): Promise<Module[]> => {
-    return apiClient.get<Module[]>(`/content/courses/${courseId}/modules/`);
-  },
-
   getById: async (id: string): Promise<Module> => {
     return apiClient.get<Module>(`/content/instructor/modules/${id}/`);
   },
@@ -388,10 +384,6 @@ export const modulesApi = {
 };
 
 export const lessonsApi = {
-  getByModule: async (moduleId: string): Promise<Lesson[]> => {
-    return apiClient.get<Lesson[]>(`/content/modules/${moduleId}/lessons/`);
-  },
-
   getById: async (id: string): Promise<Lesson> => {
     return apiClient.get<Lesson>(`/content/instructor/lessons/${id}/`);
   },

@@ -95,6 +95,11 @@ class ApiClient {
         if (firstMessage === 'An error occurred') {
           firstMessage = value[0];
         }
+      } else if (typeof value === 'string') {
+        errors[key] = [value];
+        if (firstMessage === 'An error occurred') {
+          firstMessage = value;
+        }
       }
     }
 
