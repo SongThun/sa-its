@@ -18,6 +18,9 @@ class AuthenticationService:
         if User.objects.email_exists(email):
             raise ValidationError({"email": "Cannot register with this email"})
 
+        if User.objects.filter(username=username).exists():
+            raise ValidationError({"username": "This username is already taken"})
+
         user = User.objects.create_user(
             email=email,
             username=username,
