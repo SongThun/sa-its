@@ -1,21 +1,9 @@
-import type { User, Course, EnrollmentProgress, EnrolledCourse } from '../types';
+import type { User, Course, EnrollmentProgress, EnrolledCourse, Enrollment } from '../types';
 import { apiClient, type ApiError } from './apiClient';
-
-interface EnrollmentResponse {
-  id: string;
-  course_id: string;
-  course_title: string;
-  status: 'started' | 'in_progress' | 'completed';
-  progress_percent: string;
-  is_active: boolean;
-  enrolled_at: string;
-  completed_at: string | null;
-  last_accessed_at: string | null;
-}
 
 interface EnrollmentStatusResponse {
   is_enrolled: boolean;
-  enrollment?: EnrollmentResponse;
+  enrollment?: Enrollment;
 }
 
 interface BackendUser {
@@ -174,10 +162,35 @@ export const courseApi = {
   },
 };
 
+// Helper to combine enrollment and course data
+function combineEnrollmentWithCourse(enrollment: Enrollment, course: Course): EnrolledCourse {
+  return {
+    // Course fields
+    id: course.id,
+    title: course.title,
+    description: course.description,
+    cover_image: course.cover_image,
+    difficulty_level: course.difficulty_level,
+    est_duration: course.est_duration,
+    rating: course.rating,
+    students_count: course.students_count,
+    category: course.category,
+    instructor_name: course.instructor_name,
+    total_lessons: course.total_lessons,
+    // Enrollment fields
+    enrollment_id: enrollment.id,
+    progress: parseFloat(enrollment.progress_percent) || 0,
+    enrollment_status: enrollment.status,
+    enrolled_at: enrollment.enrolled_at,
+    completed_at: enrollment.completed_at,
+    last_accessed_at: enrollment.last_accessed_at,
+  };
+}
+
 export const enrollmentApi = {
   enrollInCourse: async (courseId: string): Promise<boolean> => {
     try {
-      await apiClient.post<EnrollmentResponse>(`/learning/courses/${courseId}/enroll/`, {});
+      await apiClient.post<Enrollment>(`/learning/courses/${courseId}/enroll/`, {});
       return true;
     } catch (error) {
       console.error('Enroll error:', error);
@@ -206,29 +219,45 @@ export const enrollmentApi = {
     }
   },
 
-  getMyCoursesWithProgress: async (status?: 'ongoing' | 'completed'): Promise<EnrolledCourse[]> => {
+  // Get raw enrollments from backend
+  getEnrollments: async (status?: 'ongoing' | 'completed'): Promise<Enrollment[]> => {
     try {
       const query = status ? `?status=${status}` : '';
-      return await apiClient.get<EnrolledCourse[]>(`/learning/my-courses/${query}`);
+      return await apiClient.get<Enrollment[]>(`/learning/enrollments/${query}`);
     } catch {
       return [];
     }
   },
 
-  getEnrolledCourses: async (): Promise<EnrolledCourse[]> => {
+  // Get enrollments with full course data (combines two API calls)
+  getEnrolledCourses: async (status?: 'ongoing' | 'completed'): Promise<EnrolledCourse[]> => {
     try {
-      return await apiClient.get<EnrolledCourse[]>('/learning/my-courses/');
+      // Step 1: Get enrollments from learning_activities module
+      const enrollments = await enrollmentApi.getEnrollments(status);
+      if (enrollments.length === 0) return [];
+
+      // Step 2: Get course details for each enrollment from content module
+      const enrolledCourses = await Promise.all(
+        enrollments.map(async (enrollment) => {
+          const course = await courseApi.getCourseById(enrollment.course_id);
+          if (!course) return null;
+          return combineEnrollmentWithCourse(enrollment, course);
+        })
+      );
+
+      return enrolledCourses.filter((ec): ec is EnrolledCourse => ec !== null);
     } catch {
       return [];
     }
+  },
+
+  // Convenience methods that use getEnrolledCourses
+  getMyCoursesWithProgress: async (status?: 'ongoing' | 'completed'): Promise<EnrolledCourse[]> => {
+    return enrollmentApi.getEnrolledCourses(status);
   },
 
   getOngoingCourses: async (): Promise<EnrolledCourse[]> => {
-    try {
-      return await apiClient.get<EnrolledCourse[]>('/learning/my-courses/?status=ongoing');
-    } catch {
-      return [];
-    }
+    return enrollmentApi.getEnrolledCourses('ongoing');
   },
 
   getCourseProgress: async (courseId: string): Promise<EnrollmentProgress> => {

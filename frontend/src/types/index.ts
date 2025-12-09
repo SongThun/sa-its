@@ -141,6 +141,18 @@ export interface LessonFormData {
   is_published?: boolean;
 }
 
+// Enrollment types (matches backend response from /learning/enrollments/)
+export interface Enrollment {
+  id: string;
+  course_id: string;
+  course_title: string;
+  status: 'started' | 'in_progress' | 'completed';
+  progress_percent: string; // decimal string from backend
+  enrolled_at: string;
+  completed_at: string | null;
+  last_accessed_at: string | null;
+}
+
 // Progress types (matches backend response from /learning/courses/{id}/progress/)
 export interface EnrollmentProgress {
   enrollment_id: string;
@@ -153,7 +165,7 @@ export interface EnrollmentProgress {
   completed_at: string | null;
 }
 
-// Enrolled course with progress (matches backend response from /learning/my-courses/)
+// Combined enrollment + course data (constructed in frontend)
 export interface EnrolledCourse {
   // Course fields
   id: string;
@@ -167,7 +179,7 @@ export interface EnrolledCourse {
   category: string;
   instructor_name: string;
   total_lessons: number;
-  // Enrollment/Progress fields
+  // Enrollment fields
   enrollment_id: string;
   progress: number;
   enrollment_status: 'started' | 'in_progress' | 'completed';

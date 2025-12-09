@@ -3,6 +3,9 @@ from rest_framework import serializers
 from apps.content.models import Course, Category, Module, Lesson, Topic
 
 
+# ==================== BASE SERIALIZERS ====================
+
+
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -15,18 +18,29 @@ class TopicSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug", "description", "created_at", "updated_at"]
 
 
-class TopicListSerializer(serializers.ModelSerializer):
-    """Lightweight topic serializer for embedding in other models."""
+class TopicMinimalSerializer(serializers.ModelSerializer):
+    """Lightweight topic serializer for embedding."""
 
     class Meta:
         model = Topic
         fields = ["id", "name", "slug"]
 
 
-class LessonListSerializer(serializers.ModelSerializer):
-    """Lesson metadata for list views."""
+# ==================== LESSON SERIALIZERS ====================
 
-    topics = TopicListSerializer(many=True, read_only=True)
+
+class LessonMinimalSerializer(serializers.ModelSerializer):
+    """Lesson for locked/public view - no content."""
+
+    class Meta:
+        model = Lesson
+        fields = ["id", "title", "content_type", "order", "estimated_duration"]
+
+
+class LessonListSerializer(serializers.ModelSerializer):
+    """Lesson for enrolled users - includes topics."""
+
+    topics = TopicMinimalSerializer(many=True, read_only=True)
 
     class Meta:
         model = Lesson
@@ -38,16 +52,13 @@ class LessonListSerializer(serializers.ModelSerializer):
             "estimated_duration",
             "is_published",
             "topics",
-            "created_at",
-            "updated_at",
         ]
 
 
 class LessonDetailSerializer(serializers.ModelSerializer):
-    """Full lesson detail including content."""
+    """Full lesson detail with content."""
 
-    topics = TopicListSerializer(many=True, read_only=True)
-    content_data = serializers.SerializerMethodField()
+    topics = TopicMinimalSerializer(many=True, read_only=True)
 
     class Meta:
         model = Lesson
@@ -65,289 +76,26 @@ class LessonDetailSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def get_content_data(self, obj):
-        """Return content_data with fallback to legacy content field."""
-        return obj.get_content()
 
+class LessonWriteSerializer(serializers.ModelSerializer):
+    """Create/Update lesson."""
 
-class ModuleSerializer(serializers.ModelSerializer):
-    """Module with full lesson list (for enrolled users)."""
-
-    lessons = serializers.SerializerMethodField()
-    total_lessons = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Module
-        fields = [
-            "id",
-            "title",
-            "description",
-            "order",
-            "estimated_duration",
-            "is_published",
-            "total_lessons",
-            "lessons",
-            "created_at",
-            "updated_at",
-        ]
-
-    def get_lessons(self, obj):
-        """Filter lessons based on user role - instructors see all, others see published only."""
-        request = self.context.get("request")
-        lessons = obj.lessons.all()
-
-        if request and request.user.is_authenticated:
-            if hasattr(request.user, "role") and request.user.role == "instructor":
-                return LessonDetailSerializer(lessons, many=True).data
-            if obj.course.instructor == request.user:
-                return LessonDetailSerializer(lessons, many=True).data
-        return LessonDetailSerializer(lessons.filter(is_published=True), many=True).data
-
-    def get_total_lessons(self, obj):
-        request = self.context.get("request")
-        lessons = obj.lessons.all()
-        if request and request.user.is_authenticated:
-            if hasattr(request.user, "role") and request.user.role == "instructor":
-                return lessons.count()
-            if obj.course.instructor == request.user:
-                return lessons.count()
-        return lessons.filter(is_published=True).count()
-
-
-class LessonLockedSerializer(serializers.ModelSerializer):
-    """Lesson with title only (for non-enrolled users)."""
-
-    class Meta:
-        model = Lesson
-        fields = ["id", "title", "content_type", "order", "estimated_duration"]
-
-
-class ModuleLockedSerializer(serializers.ModelSerializer):
-    """Module with lesson titles only (for non-enrolled users)."""
-
-    lessons = serializers.SerializerMethodField()
-    total_lessons = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Module
-        fields = [
-            "id",
-            "title",
-            "description",
-            "order",
-            "estimated_duration",
-            "total_lessons",
-            "lessons",
-        ]
-
-    def get_lessons(self, obj):
-        """Show only published lessons with minimal info."""
-        lessons = obj.lessons.filter(is_published=True)
-        return LessonLockedSerializer(lessons, many=True).data
-
-    def get_total_lessons(self, obj):
-        """Count only published lessons."""
-        return obj.lessons.filter(is_published=True).count()
-
-
-class CourseListSerializer(serializers.ModelSerializer):
-    """Serializer for course list view."""
-
-    category = serializers.CharField(source="category.name", read_only=True)
-    instructor_name = serializers.CharField(
-        source="instructor.full_name", read_only=True
+    module_id = serializers.PrimaryKeyRelatedField(
+        queryset=Module.objects.all(),
+        source="module",
+        write_only=True,
     )
-    total_lessons = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Course
-        fields = [
-            "id",
-            "title",
-            "description",
-            "difficulty_level",
-            "est_duration",
-            "cover_image",
-            "students_count",
-            "rating",
-            "category",
-            "instructor_name",
-            "total_lessons",
-            "is_published",
-            "created_at",
-            "updated_at",
-        ]
-
-    def get_total_lessons(self, obj):
-        """Count lessons based on user role."""
-        request = self.context.get("request")
-        lessons = Lesson.objects.filter(module__course=obj)
-        if request and request.user.is_authenticated:
-            if hasattr(request.user, "role") and request.user.role == "instructor":
-                return lessons.count()
-            if obj.instructor == request.user:
-                return lessons.count()
-        return lessons.filter(is_published=True, module__is_published=True).count()
-
-
-class CourseDetailSerializer(serializers.ModelSerializer):
-    """Full course detail for enrolled users."""
-
-    category = serializers.CharField(source="category.name", read_only=True)
-    instructor_name = serializers.CharField(
-        source="instructor.full_name", read_only=True
+    topic_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Topic.objects.all(),
+        many=True,
+        write_only=True,
+        required=False,
     )
-    modules = serializers.SerializerMethodField()
-    prerequisites = CourseListSerializer(many=True, read_only=True)
-    total_lessons = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Course
-        fields = [
-            "id",
-            "title",
-            "description",
-            "difficulty_level",
-            "est_duration",
-            "cover_image",
-            "students_count",
-            "rating",
-            "category",
-            "instructor_name",
-            "modules",
-            "prerequisites",
-            "total_lessons",
-            "is_published",
-            "created_at",
-            "updated_at",
-        ]
-
-    def get_modules(self, obj):
-        """Filter modules based on user role - instructors see all, others see published only."""
-        request = self.context.get("request")
-        modules = obj.modules.all()
-        # Instructors see all modules
-        if request and request.user.is_authenticated:
-            if hasattr(request.user, "role") and request.user.role == "instructor":
-                return ModuleSerializer(modules, many=True, context=self.context).data
-            if obj.instructor == request.user:
-                return ModuleSerializer(modules, many=True, context=self.context).data
-        # Others see only published modules
-        return ModuleSerializer(
-            modules.filter(is_published=True), many=True, context=self.context
-        ).data
-
-    def get_total_lessons(self, obj):
-        """Count lessons based on user role."""
-        request = self.context.get("request")
-        lessons = Lesson.objects.filter(module__course=obj)
-        if request and request.user.is_authenticated:
-            if hasattr(request.user, "role") and request.user.role == "instructor":
-                return lessons.count()
-            if obj.instructor == request.user:
-                return lessons.count()
-        return lessons.filter(is_published=True, module__is_published=True).count()
-
-
-class CourseDetailLockedSerializer(serializers.ModelSerializer):
-    """Limited course detail for non-enrolled users (no lessons shown)."""
-
-    category = serializers.CharField(source="category.name", read_only=True)
-    instructor_name = serializers.CharField(
-        source="instructor.full_name", read_only=True
-    )
-    modules = serializers.SerializerMethodField()
-    total_lessons = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Course
-        fields = [
-            "id",
-            "title",
-            "description",
-            "difficulty_level",
-            "est_duration",
-            "cover_image",
-            "students_count",
-            "rating",
-            "category",
-            "instructor_name",
-            "modules",
-            "total_lessons",
-            "created_at",
-            "updated_at",
-        ]
-
-    def get_modules(self, obj):
-        """Show only published modules for non-enrolled users."""
-        modules = obj.modules.filter(is_published=True)
-        return ModuleLockedSerializer(modules, many=True).data
-
-    def get_total_lessons(self, obj):
-        """Count only published lessons in published modules."""
-        return Lesson.objects.filter(
-            module__course=obj, is_published=True, module__is_published=True
-        ).count()
-
-
-class CourseCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating courses."""
-
-    category_id = serializers.IntegerField(
-        write_only=True, required=False, allow_null=True
-    )
-
-    class Meta:
-        model = Course
-        fields = [
-            "title",
-            "description",
-            "difficulty_level",
-            "est_duration",
-            "cover_image",
-            "category_id",
-        ]
-
-
-class CourseUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating courses."""
-
-    category_id = serializers.IntegerField(
-        write_only=True, required=False, allow_null=True
-    )
-
-    class Meta:
-        model = Course
-        fields = [
-            "title",
-            "description",
-            "difficulty_level",
-            "est_duration",
-            "cover_image",
-            "category_id",
-            "is_published",
-        ]
-
-
-class ModuleModelSerializer(serializers.ModelSerializer):
-    """Serializer for creating and updating modules."""
-
-    class Meta:
-        model = Module
-        fields = ["title", "description", "order", "estimated_duration", "is_published"]
-
-
-class LessonModelSerializer(serializers.ModelSerializer):
-    """Serializer for creating and updating lessons."""
-
-    topic_ids = serializers.ListField(
-        child=serializers.IntegerField(), write_only=True, required=False
-    )
-    content_data = serializers.JSONField(required=False, default=dict)
 
     class Meta:
         model = Lesson
         fields = [
+            "module_id",
             "title",
             "content",
             "content_data",
@@ -356,4 +104,209 @@ class LessonModelSerializer(serializers.ModelSerializer):
             "estimated_duration",
             "is_published",
             "topic_ids",
+        ]
+
+    def create(self, validated_data):
+        topics = validated_data.pop("topic_ids", [])
+        lesson = super().create(validated_data)
+        if topics:
+            lesson.topics.set(topics)
+        return lesson
+
+    def update(self, instance, validated_data):
+        topics = validated_data.pop("topic_ids", None)
+        lesson = super().update(instance, validated_data)
+        if topics is not None:
+            lesson.topics.set(topics)
+        return lesson
+
+
+# ==================== MODULE SERIALIZERS ====================
+
+
+class ModuleMinimalSerializer(serializers.ModelSerializer):
+    """Module for locked/public view - lesson count only."""
+
+    total_lessons = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Module
+        fields = [
+            "id",
+            "title",
+            "description",
+            "order",
+            "estimated_duration",
+            "total_lessons",
+        ]
+
+
+class ModuleWithLessonsSerializer(serializers.ModelSerializer):
+    """Module with nested lessons for enrolled users."""
+
+    lessons = LessonListSerializer(many=True, read_only=True)
+    total_lessons = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Module
+        fields = [
+            "id",
+            "title",
+            "description",
+            "order",
+            "estimated_duration",
+            "is_published",
+            "total_lessons",
+            "lessons",
+        ]
+
+
+class ModuleInstructorSerializer(serializers.ModelSerializer):
+    """Module with all fields for instructor."""
+
+    lessons = LessonListSerializer(many=True, read_only=True)
+    total_lessons = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Module
+        fields = [
+            "id",
+            "title",
+            "description",
+            "order",
+            "estimated_duration",
+            "is_published",
+            "total_lessons",
+            "lessons",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ModuleWriteSerializer(serializers.ModelSerializer):
+    """Create/Update module."""
+
+    course_id = serializers.PrimaryKeyRelatedField(
+        queryset=Course.objects.all(),
+        source="course",
+        write_only=True,
+    )
+
+    class Meta:
+        model = Module
+        fields = [
+            "course_id",
+            "title",
+            "description",
+            "order",
+            "estimated_duration",
+            "is_published",
+        ]
+
+
+class ModuleUpdateSerializer(serializers.ModelSerializer):
+    """Update module - cannot change course."""
+
+    class Meta:
+        model = Module
+        fields = ["title", "description", "order", "estimated_duration", "is_published"]
+
+
+# ==================== COURSE SERIALIZERS ====================
+
+
+class CourseListSerializer(serializers.ModelSerializer):
+    """Course list for public browsing."""
+
+    category = serializers.CharField(source="category.name", read_only=True, default="")
+    instructor_name = serializers.CharField(
+        source="instructor.full_name", read_only=True, default=""
+    )
+    total_lessons = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = Course
+        fields = [
+            "id",
+            "title",
+            "description",
+            "cover_image",
+            "difficulty_level",
+            "category",
+            "instructor_name",
+            "est_duration",
+            "rating",
+            "students_count",
+            "total_lessons",
+        ]
+
+
+class CourseInstructorListSerializer(CourseListSerializer):
+    """Course list for instructor - includes publish status and counts."""
+
+    total_lessons = serializers.IntegerField(read_only=True)
+
+    class Meta(CourseListSerializer.Meta):
+        fields = CourseListSerializer.Meta.fields + [
+            "is_published",
+            "total_lessons",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class CourseDetailLockedSerializer(CourseListSerializer):
+    """Course detail for non-enrolled users - modules without lesson content."""
+
+    modules = ModuleMinimalSerializer(many=True, read_only=True)
+    total_lessons = serializers.IntegerField(read_only=True)
+
+    class Meta(CourseListSerializer.Meta):
+        fields = CourseListSerializer.Meta.fields + ["modules", "total_lessons"]
+
+
+class CourseDetailSerializer(CourseListSerializer):
+    """Course detail for enrolled users - full module/lesson access."""
+
+    modules = ModuleWithLessonsSerializer(many=True, read_only=True)
+    total_lessons = serializers.IntegerField(read_only=True)
+
+    class Meta(CourseListSerializer.Meta):
+        fields = CourseListSerializer.Meta.fields + [
+            "modules",
+            "total_lessons",
+            "is_published",
+        ]
+
+
+class CourseInstructorDetailSerializer(CourseInstructorListSerializer):
+    """Course detail for instructor - all modules/lessons."""
+
+    modules = ModuleInstructorSerializer(many=True, read_only=True)
+
+    class Meta(CourseInstructorListSerializer.Meta):
+        fields = CourseInstructorListSerializer.Meta.fields + ["modules"]
+
+
+class CourseWriteSerializer(serializers.ModelSerializer):
+    """Create/Update course."""
+
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        source="category",
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = Course
+        fields = [
+            "title",
+            "description",
+            "cover_image",
+            "category_id",
+            "difficulty_level",
+            "est_duration",
+            "is_published",
         ]

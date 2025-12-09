@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from apps.learning_activities.models import Enrollment
-from apps.learning_activities.services import LearningProgressService
+from apps.learning_activities.services import learning_progress_facade
 
 
 class Command(BaseCommand):
@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
         for i, enrollment in enumerate(enrollments, 1):
             old_progress = enrollment.progress_percent
-            LearningProgressService._update_enrollment_progress(enrollment)
+            learning_progress_facade._recalculate_enrollment_progress(enrollment)
             enrollment.refresh_from_db()
             new_progress = enrollment.progress_percent
 

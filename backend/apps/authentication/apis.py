@@ -17,7 +17,7 @@ from .serializers import (
     ResetPasswordSerializer,
     UserLoginSerializer,
 )
-from apps.authentication.services import AuthenticationService, ProfileService
+from apps.authentication.services import authentication_service, profile_service
 
 
 class UserRegisterView(GenericAPIView):
@@ -28,7 +28,7 @@ class UserRegisterView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = AuthenticationService.register(
+        user = authentication_service.register(
             email=serializer.validated_data["email"],
             username=serializer.validated_data["username"],
             password=serializer.validated_data["password"],
@@ -36,7 +36,7 @@ class UserRegisterView(GenericAPIView):
             role=serializer.validated_data.get("role", "student"),
         )
 
-        tokens = AuthenticationService.generate_token(user)
+        tokens = authentication_service.generate_token(user)
 
         return Response(
             {
@@ -56,12 +56,12 @@ class LoginView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = AuthenticationService.login(
+        user = authentication_service.login(
             email=serializer.validated_data["email"],
             password=serializer.validated_data["password"],
         )
 
-        tokens = AuthenticationService.generate_token(user)
+        tokens = authentication_service.generate_token(user)
 
         return Response(
             {
@@ -85,7 +85,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 
-        user = ProfileService.update_profile(
+        user = profile_service.update_profile(
             user=instance,
             data=serializer.validated_data,
         )
@@ -109,7 +109,7 @@ class ResetPasswordView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        AuthenticationService.reset_password(
+        authentication_service.reset_password(
             user=request.user,
             old_password=serializer.validated_data["old_password"],
             new_password=serializer.validated_data["new_password"],

@@ -2,12 +2,35 @@ from django.db import models
 from django.conf import settings
 import uuid
 
+from apps.common.models import TimestampMixin
 
-class Category(models.Model):
+
+# ==================== MIXINS ====================
+
+
+class PublishableMixin(models.Model):
+    is_published = models.BooleanField(default=False)
+
+    class Meta:
+        abstract = True
+
+    def publish(self) -> None:
+        if not self.is_published:
+            self.is_published = True
+            self.save(update_fields=["is_published", "updated_at"])
+
+    def unpublish(self) -> None:
+        if self.is_published:
+            self.is_published = False
+            self.save(update_fields=["is_published", "updated_at"])
+
+
+# ==================== MODELS ====================
+
+
+class Category(TimestampMixin):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = "categories"
@@ -17,12 +40,10 @@ class Category(models.Model):
         return self.name
 
 
-class Topic(models.Model):
+class Topic(TimestampMixin):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["name"]
@@ -31,7 +52,7 @@ class Topic(models.Model):
         return self.name
 
 
-class Course(models.Model):
+class Course(TimestampMixin, PublishableMixin):
     class DifficultyLevel(models.TextChoices):
         BEGINNER = "beginner", "Beginner"
         INTERMEDIATE = "intermediate", "Intermediate"
@@ -47,7 +68,6 @@ class Course(models.Model):
         default=DifficultyLevel.BEGINNER,
     )
     est_duration = models.PositiveIntegerField(default=0)
-    is_published = models.BooleanField(default=False)
     cover_image = models.URLField(
         max_length=500,
         blank=True,
@@ -72,17 +92,17 @@ class Course(models.Model):
         "self", symmetrical=False, blank=True, related_name="required_by"
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
         return self.title
 
+    def get_instructor(self):
+        return self.instructor
 
-class Module(models.Model):
+
+class Module(TimestampMixin, PublishableMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -92,17 +112,17 @@ class Module(models.Model):
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     class Meta:
         ordering = ["order", "-created_at"]
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
 
+    def get_instructor(self):
+        return self.course.instructor
 
-class Lesson(models.Model):
+
+class Lesson(TimestampMixin, PublishableMixin):
     class ContentType(models.TextChoices):
         VIDEO = "video", "Video"
         TEXT = "text", "Text"
@@ -124,18 +144,11 @@ class Lesson(models.Model):
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons")
     topics = models.ManyToManyField(Topic, blank=True, related_name="lessons")
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     class Meta:
         ordering = ["order", "-created_at"]
 
     def __str__(self):
         return f"{self.module.title} - {self.title}"
 
-    def get_content(self):
-        if self.content_data:
-            return self.content_data
-        if self.content:
-            return {"main_content": self.content}
-        return {}
+    def get_instructor(self):
+        return self.module.course.instructor

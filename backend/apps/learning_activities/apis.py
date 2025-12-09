@@ -3,54 +3,65 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from apps.content.services import ContentFacade
-from apps.learning_activities.services import EnrollmentService, LearningProgressService
+from apps.learning_activities.services import (
+    enrollment_facade,
+    learning_progress_facade,
+)
 from apps.learning_activities.serializers import (
     EnrollmentSerializer,
-    EnrolledCourseSerializer,
+    EnrollmentWithCourseRefSerializer,
 )
 
 
+# ==================== Enrollment Views ====================
+
+
 class EnrollView(APIView):
+    """Enroll user in a course."""
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, course_id):
-        if not ContentFacade.published_course_exists(course_id):
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+        result = enrollment_facade.enroll(request.user, course_id)
 
-        enrollment = EnrollmentService.enroll_by_course_id(request.user, course_id)
-        serializer = EnrollmentSerializer(enrollment)
+        if not result.success:
+            return Response({"error": result.error}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = EnrollmentSerializer(result.enrollment)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UnenrollView(APIView):
+    """Unenroll user from a course."""
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, course_id):
-        if not ContentFacade.course_exists(course_id):
-            return Response(
-                {"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+        result = enrollment_facade.unenroll(request.user, course_id)
 
-        result = EnrollmentService.unenroll_by_course_id(request.user, course_id)
-        if result:
-            return Response(
-                {"message": "Successfully unenrolled"}, status=status.HTTP_200_OK
+        if not result.success:
+            error_status = (
+                status.HTTP_404_NOT_FOUND
+                if result.error == "Course not found"
+                else status.HTTP_400_BAD_REQUEST
             )
+            return Response({"error": result.error}, status=error_status)
+
         return Response(
-            {"error": "Not enrolled in this course"}, status=status.HTTP_400_BAD_REQUEST
+            {"message": "Successfully unenrolled"}, status=status.HTTP_200_OK
         )
 
 
 class EnrollmentStatusView(APIView):
+    """Check enrollment status for a course."""
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, course_id):
-        enrollment = EnrollmentService.get_enrollment_by_course_id(
+        enrollment = enrollment_facade.get_enrollment_by_course_id(
             request.user, course_id
         )
+
         if enrollment:
             serializer = EnrollmentSerializer(enrollment)
             return Response(
@@ -61,38 +72,29 @@ class EnrollmentStatusView(APIView):
 
 
 class MyEnrollmentsView(APIView):
-    permission_classes = [IsAuthenticated]
+    """List user's enrollments."""
 
-    def get(self, request):
-        enrollments = EnrollmentService.get_user_enrollments(request.user)
-        serializer = EnrollmentSerializer(enrollments, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class MyEnrolledCoursesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         status_filter = request.query_params.get("status", None)
-        enrollments = EnrollmentService.get_user_enrollments(request.user)
-
-        if status_filter == "ongoing":
-            enrollments = enrollments.exclude(status="completed")
-        elif status_filter == "completed":
-            enrollments = enrollments.filter(status="completed")
-
-        if status_filter == "ongoing":
-            enrollments = enrollments.order_by("-last_accessed_at")
-
-        serializer = EnrolledCourseSerializer(enrollments, many=True)
+        enrollments = enrollment_facade.get_user_enrollments(
+            request.user, status_filter=status_filter
+        )
+        serializer = EnrollmentWithCourseRefSerializer(enrollments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+# ==================== Learning Progress Views ====================
+
+
 class CourseProgressView(APIView):
+    """Get course progress for enrolled user."""
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request, course_id):
-        enrollment = EnrollmentService.get_enrollment_by_course_id(
+        enrollment = enrollment_facade.get_enrollment_by_course_id(
             request.user, course_id
         )
         if not enrollment:
@@ -101,15 +103,17 @@ class CourseProgressView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        progress = LearningProgressService.get_course_progress(enrollment)
+        progress = learning_progress_facade.get_course_progress(enrollment)
         return Response(progress, status=status.HTTP_200_OK)
 
 
 class LessonCompleteView(APIView):
+    """Mark lesson as complete/incomplete."""
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, course_id, lesson_id):
-        enrollment = EnrollmentService.get_enrollment_by_course_id(
+        enrollment = enrollment_facade.get_enrollment_by_course_id(
             request.user, course_id
         )
         if not enrollment:
@@ -118,19 +122,15 @@ class LessonCompleteView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if not ContentFacade.lesson_exists_in_course(lesson_id, course_id):
-            return Response(
-                {"error": "Lesson not found in this course"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        result = learning_progress_facade.complete_lesson(enrollment, lesson_id)
 
-        LearningProgressService.complete_lesson(enrollment, lesson_id)
+        if not result.success:
+            return Response({"error": result.error}, status=status.HTTP_400_BAD_REQUEST)
 
-        progress = LearningProgressService.get_course_progress(enrollment)
-        return Response(progress, status=status.HTTP_200_OK)
+        return Response(result.progress, status=status.HTTP_200_OK)
 
     def delete(self, request, course_id, lesson_id):
-        enrollment = EnrollmentService.get_enrollment_by_course_id(
+        enrollment = enrollment_facade.get_enrollment_by_course_id(
             request.user, course_id
         )
         if not enrollment:
@@ -139,12 +139,9 @@ class LessonCompleteView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        result = LearningProgressService.uncomplete_lesson(enrollment, lesson_id)
-        if not result:
-            return Response(
-                {"error": "Lesson was not marked as completed"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        result = learning_progress_facade.uncomplete_lesson(enrollment, lesson_id)
 
-        progress = LearningProgressService.get_course_progress(enrollment)
-        return Response(progress, status=status.HTTP_200_OK)
+        if not result.success:
+            return Response({"error": result.error}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(result.progress, status=status.HTTP_200_OK)

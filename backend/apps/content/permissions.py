@@ -2,7 +2,7 @@ from rest_framework.permissions import BasePermission
 
 
 class IsInstructor(BasePermission):
-    """Permission check for instructor role."""
+    """Check if user is an instructor."""
 
     def has_permission(self, request, view):
         return (
@@ -13,16 +13,7 @@ class IsInstructor(BasePermission):
 
 
 class IsOwner(BasePermission):
-    """Permission check for object ownership."""
+    """Check if user owns the object (for update/delete operations)."""
 
     def has_object_permission(self, request, view, obj):
-        if hasattr(obj, "instructor"):
-            return obj.instructor == request.user
-
-        if hasattr(obj, "course"):
-            return obj.course.instructor == request.user
-
-        if hasattr(obj, "module"):
-            return obj.module.course.instructor == request.user
-
-        return False
+        return obj.get_instructor() == request.user

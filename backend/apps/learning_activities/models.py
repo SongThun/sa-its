@@ -2,8 +2,10 @@ from django.db import models
 from django.conf import settings
 import uuid
 
+from apps.common.models import TimestampMixin
 
-class Enrollment(models.Model):
+
+class Enrollment(TimestampMixin):
     class Status(models.TextChoices):
         STARTED = "started", "Started"
         IN_PROGRESS = "in_progress", "In Progress"
@@ -37,9 +39,6 @@ class Enrollment(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     last_accessed_at = models.DateTimeField(null=True, blank=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     class Meta:
         ordering = ["-enrolled_at"]
         unique_together = ["student", "course"]
@@ -50,7 +49,7 @@ class Enrollment(models.Model):
         return f"{self.student.email} - {self.course.title}"
 
 
-class ModuleProgress(models.Model):
+class ModuleProgress(TimestampMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     enrollment = models.ForeignKey(
         Enrollment,
@@ -70,9 +69,6 @@ class ModuleProgress(models.Model):
         default=0.00,
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
     class Meta:
         ordering = ["-updated_at"]
         unique_together = ["enrollment", "module"]
@@ -84,7 +80,7 @@ class ModuleProgress(models.Model):
         return f"{self.enrollment.student.email} - {self.module.title} ({status})"
 
 
-class LessonProgress(models.Model):
+class LessonProgress(TimestampMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     enrollment = models.ForeignKey(
         Enrollment,
@@ -99,9 +95,6 @@ class LessonProgress(models.Model):
     is_completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
     last_accessed_at = models.DateTimeField(auto_now=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-updated_at"]

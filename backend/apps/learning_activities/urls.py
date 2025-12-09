@@ -5,14 +5,13 @@ from apps.learning_activities.apis import (
     UnenrollView,
     EnrollmentStatusView,
     MyEnrollmentsView,
-    MyEnrolledCoursesView,
     CourseProgressView,
     LessonCompleteView,
 )
 
 urlpatterns = [
+    # Enrollment endpoints
     path("enrollments/", MyEnrollmentsView.as_view(), name="my-enrollments"),
-    path("my-courses/", MyEnrolledCoursesView.as_view(), name="my-enrolled-courses"),
     path(
         "courses/<uuid:course_id>/enroll/", EnrollView.as_view(), name="course-enroll"
     ),

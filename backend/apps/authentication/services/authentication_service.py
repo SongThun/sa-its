@@ -5,8 +5,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class AuthenticationService:
-    @staticmethod
+    """Service for authentication operations (register, login, token generation)."""
+
     def register(
+        self,
         email: str,
         username: str,
         password: str,
@@ -26,27 +28,25 @@ class AuthenticationService:
 
         return user
 
-    @staticmethod
-    def login(email, password):
+    def login(self, email: str, password: str) -> User:
         user = authenticate(username=email, password=password)
         if not user:
             raise ValidationError({"detail": "Incorrect email or password"})
 
         return user
 
-    @staticmethod
     def reset_password(
+        self,
         user: User,
         old_password: str,
         new_password: str,
-    ):
+    ) -> None:
         if not user.check_password(old_password):
             raise ValidationError({"old_password": "Incorrect password"})
 
         user.set_password(new_password)
         user.save()
 
-    @staticmethod
-    def generate_token(user: User) -> dict:
+    def generate_token(self, user: User) -> dict:
         refresh = RefreshToken.for_user(user)
         return {"refresh": str(refresh), "access": str(refresh.access_token)}
